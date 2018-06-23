@@ -11,7 +11,11 @@
   tags: ['nginx', 'nginx-install']
 
 - name: Add repository APT key using http proxy
-  command: apt-key adv --keyserver-options "http-proxy={{ httpproxy }}" --keyserver '{{ item.keyserver }}' --recv-keys '{{ item.id }}'
+  command: >
+    apt-key adv
+    --keyserver-options 'http-proxy={{ httpproxy }}'
+    --keyserver '{{ item.keyserver }}'
+    --recv-keys '{{ item.id }}'
   with_items: '{{ nginx__provider_gpg_keys[ansible_distribution] }}'
   when: _nginx__apt_key is failed and httpproxy is defined
   tags: ['nginx', 'nginx-install']

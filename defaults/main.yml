@@ -8,7 +8,6 @@ nginx__facts: true
 ### INSTALL CONFIGURATION
 # Choose the source of nginx repository
 # in os, nginx
-#nginx__packages_source: os
 nginx__packages_source: os
 
 # Choose which branch to track version from
@@ -142,14 +141,14 @@ nginx__variables_hash_bucket_size: 64
 nginx__variables_hash_max_size: 1024
 
 # Sets the size of server names hash tables.
-#nginx__server_names_hash_bucket_size:
+# nginx__server_names_hash_bucket_size:
 nginx__server_names_hash_max_size: 512
 
 # Enables or disables emitting nginx version on error pages and
 # in the “Server” response header
 nginx__server_tokens: true
 
-#Defines the default MIME type of a response
+# Defines the default MIME type of a response
 nginx__default_type: application/octet-stream
 
 
@@ -225,11 +224,10 @@ nginx__ssl_stapling: false
 
 # When set, the stapled OCSP response will be taken from the specified file
 # instead of querying the OCSP responder specified in the server certificate.
-#nginx__ssl_stapling_file:
+# nginx__ssl_stapling_file:
 
 # Enables or disables verification of OCSP responses by the server.
 nginx__ssl_stapling_verify: false
-
 
 
 ## Nginx vhost
@@ -307,9 +305,11 @@ nginx__mime_types_map_default:
   - application/octet-stream: iso img
   - application/octet-stream: msi msp msm
 
-  - application/vnd.openxmlformats-officedocument.wordprocessingml.document: docx
+  - application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+      docx
   - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet: xlsx
-  - application/vnd.openxmlformats-officedocument.presentationml.presentation: pptx
+  - application/vnd.openxmlformats-officedocument.presentationml.presentation:
+      pptx
 
   - image/gif: gif
   - image/jpeg: jpeg jpg

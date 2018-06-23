@@ -85,7 +85,7 @@ http {
     ##
     # Virtual Host Configs
     ##
-    include {{ nginx__enabled_sites_include_directory }}/*;
+    include {{ nginx__enabled_sites_include_directory }}/*.conf;
 }
 
 mail {
