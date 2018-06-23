@@ -81,6 +81,11 @@ http {
 {%   endif %}
     ssl_stapling_verify {{ macros.bool(nginx__ssl_stapling_verify) }};
 {% endif %}
+
+    ##
+    # Virtual Host Configs
+    ##
+    include {{ nginx__enabled_sites_include_directory }}/*;
 }
 
 mail {
