@@ -1,0 +1,40 @@
+{#
+ # Produce a boolean value in nginx format
+ #
+ # @param value : the value of the boolean
+ # @return string
+ #}
+{%- macro bool(value) -%}
+{{ value|bool|ternary('on', 'off') }}
+{%- endmacro -%}
+
+{#
+ # Filter for parameters that accepts
+ # boolean and string values
+ #
+ # @param value : the value of the parameter
+ # @return string
+ #}
+{%- macro stringOrBool(value) -%}
+{{ value if value is string else bool(value) }}
+{%- endmacro -%}
+
+{#
+ # Compare current nginx version againt stable or mainline version
+ # using the _nginx__branch fact
+ #
+ # @param stable_version : the stable version to compare
+ # @param mainline_version : the mainline version to compare
+ # @param oper : the operator to use for comparaison as ansible version_compare
+ #                   takes
+ # @return boolean string (you must apply |bool filter on result)
+ #}
+{%- macro version_compare_per_branch(stable_version, mainline_version, oper=None) -%}
+{% set operator = oper or mainline_version %}
+{% set _mainline_version = (oper is not none)|ternary(mainline_version, stable_version) %}
+{%- if _nginx__branch == 'stable' -%}
+{{   (_nginx__version is version_compare(stable_version, operator))|bool }}
+{%- elif _nginx__branch == 'mainline' -%}
+{{   (_nginx__version is version_compare(_mainline_version, operator))|bool }}
+{%- endif -%}
+{%- endmacro -%}

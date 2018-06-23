@@ -1,0 +1,35 @@
+---
+# handlers file for nginx
+
+- name: restart-nginx
+  command:
+    "{{ nginx__configuration_validator|replace('%s', nginx__config_file) }}"
+  check_mode: false
+  notify: ['restart-nginx-after-config-ok']
+
+- name: restart-nginx-daemon
+  service:
+    name: '{{ nginx__service_name }}'
+    state: restarted
+  when: nginx__service_enabled|bool and nginx__service_restartable|bool
+  listen: restart-nginx-after-config-ok
+
+- name: mark-daemon-to-restart
+  file:
+    path: '{{ nginx__service_restart_stamp_file }}'
+    state: touch
+  when: nginx__service_enabled|bool and not nginx__service_restartable|bool
+  listen: restart-nginx-after-config-ok
+
+- name: reload-nginx
+  command:
+    "{{ nginx__configuration_validator|replace('%s', nginx__config_file) }}"
+  check_mode: false
+  notify: ['reload-nginx-after-config-ok']
+
+- name: reload-nginx-daemon
+  service:
+    name: '{{ nginx__service_name }}'
+    state: reloaded
+  when: nginx__service_enabled|bool
+  listen: reload-nginx-after-config-ok

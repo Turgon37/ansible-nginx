@@ -1,0 +1,63 @@
+---
+
+- name: List available sites
+  find:
+    paths: '{{ nginx__available_sites_include_directory }}'
+    file_type: any
+  register: _nginx__available_sites
+
+- name: List enabled sites
+  find:
+    paths: '{{ nginx__enabled_sites_include_directory }}'
+    file_type: any
+  register: _nginx__enabled_sites
+
+- name: Remove unwanted availables sites
+  file:
+    path: '{{ item.path }}'
+    state: absent
+  with_items: '{{ _nginx__available_sites.files }}'
+  when: nginx__purge_virtual_hosts|bool
+        and item.path|basename|replace('.conf', '') not in
+        nginx__virtual_hosts.keys()|list
+  notify: ['reload-nginx']
+
+- name: Setup availables sites
+  include_tasks: types/virtual_host.yml
+  vars:
+    nginx__virtualhost:
+      "{{ outer_item.value|combine({'name': outer_item.key}) }}"
+  with_dict: '{{ nginx__virtual_hosts }}'
+  loop_control:
+    loop_var: outer_item
+
+- name: Secure virtualhost files
+  file:
+    path: '{{ nginx__available_sites_include_directory }}'
+    owner: root
+    group: '{{ nginx__service_group }}'
+    mode: u=rwX,g=rX,o=---
+    recurse: true
+    state: directory
+
+- name: Disable all unwanted Nginx sites
+  file:
+    path: '{{ item.path }}'
+    state: absent
+  with_items: '{{ _nginx__enabled_sites.files }}'
+  when: nginx__purge_virtual_hosts
+    and item.path|basename|replace('.conf', '') not in
+      nginx__virtual_hosts.keys()|list
+  notify: ['reload-nginx']
+
+- name: Enable wanted Nginx sites.
+  file:
+    src: "{{ nginx__available_sites_include_directory }}/\
+      {{ item|replace(' ', '_') }}.conf"
+    dest: "{{ nginx__enabled_sites_include_directory }}/\
+      {{ item|replace(' ', '_') }}.conf"
+    force: '{{ ansible_check_mode }}'
+    state: link
+  with_items: '{{ nginx__virtual_hosts.keys()|list }}'
+  when: nginx__virtual_hosts[item]['enabled']|d(True)|bool
+  notify: ['reload-nginx']

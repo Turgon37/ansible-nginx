@@ -1,0 +1,48 @@
+---
+
+- name: Ensure systemd override directory is created
+  file:
+    path: '{{ nginx__systemd_override_options_directory }}'
+    state: directory
+  when: ansible_service_mgr == 'systemd'
+
+- name: Install systemd options override file
+  template:
+    src: systemd.service.d.j2
+    dest: '{{ nginx__systemd_override_options_directory }}/override.conf'
+  when: ansible_service_mgr == 'systemd'
+  notify: ['restart-nginx']
+  register: _nginx__service
+
+- name: Reload systemd
+  systemd:
+    daemon_reload: true
+  when: ansible_service_mgr == 'systemd' and _nginx__service is changed
+
+- meta: flush_handlers
+
+- name: Ensure Nginx daemon is started and enabled on boot
+  service:
+    name: '{{ nginx__service_name }}'
+    enabled: '{{ nginx__service_enabled|bool }}'
+    state: "{{ nginx__service_enabled|bool|ternary('started', 'stopped') }}"
+
+# restart feature
+- name: Test if Nginx need to be restart
+  stat:
+    path: '{{ nginx__service_restart_stamp_file }}'
+  register: _nginx__restart_file
+  check_mode: false
+
+- name: Trigger restart of Nginx if needed and allowed
+  command: /bin/true
+  when: nginx__service_enabled|bool
+    and nginx__service_restartable|bool and _nginx__restart_file.stat.exists
+  check_mode: false
+  notify: ['restart-nginx']
+
+- name: Remove stamp file if Nginx daemon is disabled
+  file:
+    path: '{{ nginx__service_restart_stamp_file }}'
+    state: absent
+  when: not nginx__service_enabled|bool

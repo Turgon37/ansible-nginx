@@ -1,0 +1,14 @@
+---
+
+- name: Assert required variables
+  assert:
+    that:
+      - nginx__packages_source in ['os', 'nginx']
+      - nginx__provider_branch in ['stable', 'mainline']
+      - nginx__worker_connections|int
+      - nginx__ssl_protocols|intersect(['SSLv2', 'SSLv3', 'TLSv1', 'TLSv1.1', 'TLSv1.2', 'TLSv1.3']) == nginx__ssl_protocols
+      - nginx__ssl_session_cache in ['off', 'none']
+          or 'builtin' in nginx__ssl_session_cache
+          or 'shared' in nginx__ssl_session_cache
+      - nginx__keepalive_disable in ['safari', 'msie6']
+      - nginx__keepalive_requests|int

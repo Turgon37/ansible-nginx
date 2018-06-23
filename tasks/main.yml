@@ -1,0 +1,38 @@
+---
+# tasks file for nginx
+
+- name: Include the OS specific variables
+  include_vars: '{{ item }}'
+  with_first_found:
+    - files:
+        - '{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml'
+        - '{{ ansible_distribution }}.yml'
+        - '{{ ansible_os_family }}.yml'
+        - defaults.yml
+      skip: true
+  tags: ['always']
+
+- import_tasks: init.yml
+  tags: ['always']
+
+- name: Import install tasks
+  import_tasks: install.yml
+  tags: ['nginx', 'nginx-install']
+
+- name: Import configuration tasks
+  import_tasks: configure.yml
+  tags: ['nginx', 'nginx-configure']
+
+- name: Import service tasks
+  import_tasks: service.yml
+  tags: ['nginx', 'nginx-service']
+
+- name: Optionally import monitoring tasks
+  include_tasks: 'monitoring/{{ nginx__monitoring }}.yml'
+  when: nginx__monitoring is defined
+  tags: ['nginx', 'nginx-monitoring']
+
+- name: Optionally import facts tasks
+  include_tasks: facts.yml
+  when: nginx__facts|bool
+  tags: ['nginx', 'nginx-facts']

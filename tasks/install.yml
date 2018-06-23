@@ -1,0 +1,23 @@
+---
+
+- name: Fail if architecture is not supported
+  fail:
+    msg: '{{ ansible_architecture }} architecture is not supported'
+  when: nginx__packages_source == 'nginx' and
+    ansible_architecture not in ['x86_64']
+
+- name: Include installation tasks from nginx repository
+  include_tasks: '{{ file_item }}'
+  with_first_found:
+    - files:
+        - 'install-{{ ansible_distribution }}.yml'
+        - 'install-{{ ansible_os_family }}.yml'
+  when: nginx__packages_source == 'nginx'
+  loop_control:
+    loop_var: file_item
+
+- name: Install nginx packages
+  package:
+    name: '{{ item }}'
+    state: present
+  with_items: '{{ nginx__packages_names }}'
