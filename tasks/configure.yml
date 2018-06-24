@@ -62,9 +62,10 @@
   file:
     path: '{{ nginx__ssl_session_ticket_key }}'
     state: absent
-  when: _nginx__session_ticket_key_stat.stat is defined and
-    _nginx__session_ticket_key_stat.stat.size !=
-    nginx__ssl_session_ticket_key_length|int
+  when: _nginx__session_ticket_key_stat.stat is defined
+    and _nginx__session_ticket_key_stat.stat.exists
+    and _nginx__session_ticket_key_stat.stat.size !=
+      nginx__ssl_session_ticket_key_length|int
 
 - name: Generate ssl session ticket key if needed
   command: >
