@@ -1,5 +1,7 @@
-{%- import '_macros.j2' as macros -%}
-{%- import '_virtualhost_macros.j2' as virtualhost_macros -%}
+{%- import '_macros.j2' as macros with context -%}
+{%- import '_virtualhost_macros.j2' as virtualhost_macros with context -%}
+{%- import '_sections.j2' as sections -%}
+{%- import '_directives.j2' as directives -%}
 #
 # {{ ansible_managed }}
 #
@@ -8,39 +10,58 @@
 server {
 {% if vhost.listen_ip is not defined and vhost.listen_unix is not defined %}
     # Default
-    listen {{ 443 if vhost.ssl|d(false)|bool else 80 }}{{ virtualhost_macros.listen_options(vhost) }};
+    listen {{ 443 if vhost.ssl|d(false)|bool else 80 }} {{ virtualhost_macros.listen_options(vhost) }};
 {% else %}
     # IPs
-{# treat all ip based listen #}
+{#   treat all ip based listen #}
 {%   if vhost.listen_ip is defined %}
 {#     simple string declaration using 'ip:port' or simply 'ip' #}
 {%     if vhost.listen_ip is string %}
-    listen {{ listen }}{{ virtualhost_macros.listen_options(vhost) }};
+    listen {{ vhost.listen_ip }} {{ virtualhost_macros.listen_options(vhost) }};
 {#     list version with advanced settings support #}
 {%     elif vhost.listen_ip is iterable %}
 {%       for listen in vhost.listen_ip %}
 {%         if listen is string %}
-    listen {{ listen }}{{ virtualhost_macros.listen_options(vhost) }};
+    listen {{ listen }} {{ virtualhost_macros.listen_options(vhost) }};
 {%         elif listen is mapping %}
-    listen {% if listen.address is defined %}{{ listen.address }}:{% endif %}{{ listen.port|d(443 if vhost.ssl|d(false)|bool else 80) }}{{ virtualhost_macros.listen_options(vhost, listen) }};
+    listen {% if listen.address is defined %}{{ listen.address }}:{% endif %}{{ listen.port|d(443 if vhost.ssl|d(false)|bool else 80) }} {{ virtualhost_macros.listen_options(vhost, listen) }};
 {%         endif %}
 {%       endfor %}
 {%     endif %}
 {%   endif %}
     # Unix
+{#   treat all unix based listen #}
+{%   if vhost.listen_unix is defined %}
+{#     simple string declaration using 'path' #}
+{%     if vhost.listen_unix is string %}
+    listen {{ vhost.listen_unix }} {{ virtualhost_macros.listen_options(vhost) }};
+{#     list version with advanced settings support #}
+{%     elif vhost.listen_unix is iterable %}
+{%       for listen in vhost.listen_unix %}
+{%         if listen is string %}
+    listen {{ listen }} {{ virtualhost_macros.listen_options(vhost) }};
+{%         elif listen is mapping %}
+    listen {{ listen.path }} {{ virtualhost_macros.listen_options(vhost, listen) }};
+{%         endif %}
+{%       endfor %}
+{%     endif %}
+{%   endif %}
 {% endif %}
-
-    #listen address[:port]
-    #listen port
-    #listen unix:path
 
     server_name{% if vhost.server_name is string %} "{{ vhost.server_name }}"{% else %}{% for name in vhost.server_name %} "{{ name }}"{% endfor %}{% endif %};
 
+{% if vhost.ssl_certificate is defined %}
+    ssl_certificate {{ vhost.ssl_certificate }};
+{% endif %}
+{% if vhost.ssl_certificate_key is defined %}
+    ssl_certificate_key {{ vhost.ssl_certificate_key }};
+{% endif %}
 
-    root /var/www/html;
-	index index.html index.htm index.nginx-debian.html;
+{% for sect in vhost.sections|d([]) %}
+{{   sections.section(sect)|indent(4, True) }}
+{% endfor %}
 
-	location / {
-		try_files $uri $uri/ =404;
-	}
+{% for dir in vhost.directives|d([]) %}
+{{   directives.directive(dir)|indent(4, True) }}
+{% endfor %}
 }

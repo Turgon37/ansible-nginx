@@ -50,7 +50,7 @@
       nginx__virtual_hosts.keys()|list
   notify: ['reload-nginx']
 
-- name: Enable wanted Nginx sites.
+- name: Enable wanted Nginx sites
   file:
     src: "{{ nginx__available_sites_include_directory }}/\
       {{ item|replace(' ', '_') }}.conf"

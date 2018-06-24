@@ -1,0 +1,23 @@
+{#
+ # Router for directives
+ #
+ # @param section : specification of a section to produce
+ # @return string
+ #}
+{%- macro directive(line) -%}
+{%-   set name = (line.keys()|list)[0] -%}
+{%-   set value = (line.values()|list)[0] -%}
+{%-   if name == 'root' -%}
+root {{ value }};
+{%-   elif name == 'try_files' -%}
+try_files {{ value }};
+{%-   elif name == 'index' -%}
+index {{ value }};
+{%-   elif name == 'extra_parameters' -%}
+{%      for param in value %}
+{{ param }};
+{%      endfor %}
+{%-   else -%}
+{{ 'The directive name "'~name~'" is not implemented.' }}
+{%-   endif -%}
+{%- endmacro -%}

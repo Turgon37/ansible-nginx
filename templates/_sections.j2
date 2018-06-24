@@ -1,0 +1,30 @@
+{%- import '_directives.j2' as _directives -%}
+{#
+ # Router for sections block
+ #
+ # @param section : specification of a section to produce
+ # @return string
+ #}
+{%- macro section(sec) -%}
+{%    if sec.type == 'location' %}
+{{ location(sec.path, sec.modifier|d(none), sec.directives|d([])) }}
+{%    else %}
+{{ 'The section type "'~sec.type~'" is not implemented.'~0/0 }} {# ZeroDivisionError: #}
+{%    endif %}
+{%- endmacro -%}
+
+
+{#
+ # Produce a Location section
+ #
+ # @param path : the url path the location will apply to
+ # @param directives : the list of directives
+ # @return string
+ #}
+{%- macro location(path, modifier, directives) -%}
+location {% if modifier is not none %}{{ modifier }}{% endif %} "{{ path }}" {
+{% for dir in directives %}
+{{   _directives.directive(dir)|indent(4, true) }}
+{% endfor %}
+}
+{%- endmacro -%}
