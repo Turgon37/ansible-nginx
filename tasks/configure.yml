@@ -21,37 +21,37 @@
       if _nginx__version_raw is not skipped
       else ansible_local.nginx.branch }}"
 
-# - name: "Ensure service group '{{ nginx__service_group }}' is present"
-#   group:
-#     name: '{{ nginx__service_group }}'
-#     system: true
-#     state: present
-#   notify: ['restart-nginx']
-#
-# - name: "Ensure service user '{{ nginx__service_user }}' is present"
-#   user:
-#     name: '{{ nginx__service_user }}'
-#     group: '{{ nginx__service_group }}'
-#     shell: /sbin/nologin
-#     home: /nonexistent
-#     createhome: false
-#     system: true
-#     state: present
-#   notify: ['restart-nginx']
-#
-# - name: Ensure configuration directories exists
-#   file:
-#     path: '{{ item }}'
-#     owner: root
-#     group: '{{ nginx__service_group }}'
-#     mode: 0750
-#     state: directory
-#   with_items:
-#     - '{{ nginx__config_directory }}'
-#     - '{{ nginx__available_sites_include_directory }}'
-#     - '{{ nginx__enabled_sites_include_directory }}'
-#     - '{{ nginx__ssl_directory }}'
-#
+- name: "Ensure service group '{{ nginx__service_group }}' is present"
+  group:
+    name: '{{ nginx__service_group }}'
+    system: true
+    state: present
+  notify: ['restart-nginx']
+
+- name: "Ensure service user '{{ nginx__service_user }}' is present"
+  user:
+    name: '{{ nginx__service_user }}'
+    group: '{{ nginx__service_group }}'
+    shell: /sbin/nologin
+    home: /nonexistent
+    createhome: false
+    system: true
+    state: present
+  notify: ['restart-nginx']
+
+- name: Ensure configuration directories exists
+  file:
+    path: '{{ item }}'
+    owner: root
+    group: '{{ nginx__service_group }}'
+    mode: 0750
+    state: directory
+  with_items:
+    - '{{ nginx__config_directory }}'
+    - '{{ nginx__available_sites_include_directory }}'
+    - '{{ nginx__enabled_sites_include_directory }}'
+    - '{{ nginx__ssl_directory }}'
+
 
 - name: Check size of current ssl session ticket key
   stat:
