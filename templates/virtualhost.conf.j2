@@ -1,0 +1,51 @@
+{%- import '_macros.j2' as macros -%}
+{%- import '_virtualhost_macros.j2' as virtualhost_macros -%}
+#
+# {{ ansible_managed }}
+#
+{% set vhost = nginx__virtualhost %}
+
+server {
+{% if vhost.listen_ip is not defined and vhost.listen_unix is not defined %}
+    # Default
+    listen {{ 443 if vhost.ssl|d(false)|bool else 80 }}{{ virtualhost_macros.listen_options(vhost) }};
+{% else %}
+    # IPs
+{# treat all ip based listen #}
+{%   if vhost.listen_ip is defined %}
+{#     simple string declaration using 'ip:port' or simply 'ip' #}
+{%     if vhost.listen_ip is string %}
+    listen {{ listen }}{{ virtualhost_macros.listen_options(vhost) }};
+{#     list version with advanced settings support #}
+{%     elif vhost.listen_ip is iterable %}
+{%       for listen in vhost.listen_ip %}
+{%         if listen is string %}
+    listen {{ listen }}{{ virtualhost_macros.listen_options(vhost) }};
+{%         elif listen is mapping %}
+    listen {% if listen.address is defined %}{{ listen.address }}:{% endif %}{{ listen.port|d(443 if vhost.ssl|d(false)|bool else 80) }}{{ virtualhost_macros.listen_options(vhost, listen) }};
+{%         endif %}
+{%       endfor %}
+{%     endif %}
+{%   endif %}
+    # Unix
+{% endif %}
+
+    #listen address[:port]
+    #listen port
+    #listen unix:path
+
+    server_name{% if vhost.server_name is string %} "{{ vhost.server_name }}"{% else %}{% for name in vhost.server_name %} "{{ name }}"{% endfor %}{% endif %};
+
+
+    root /var/www/html;
+
+	# Add index.php to the list if you are using PHP
+	index index.html index.htm index.nginx-debian.html;
+
+
+	location / {
+		# First attempt to serve request as file, then
+		# as directory, then fall back to displaying a 404.
+		try_files $uri $uri/ =404;
+	}
+}
