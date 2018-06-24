@@ -21,43 +21,60 @@
       if _nginx__version_raw is not skipped
       else ansible_local.nginx.branch }}"
 
-- name: "Ensure service group '{{ nginx__service_group }}' is present"
-  group:
-    name: '{{ nginx__service_group }}'
-    system: true
-    state: present
-  notify: ['restart-nginx']
+# - name: "Ensure service group '{{ nginx__service_group }}' is present"
+#   group:
+#     name: '{{ nginx__service_group }}'
+#     system: true
+#     state: present
+#   notify: ['restart-nginx']
+#
+# - name: "Ensure service user '{{ nginx__service_user }}' is present"
+#   user:
+#     name: '{{ nginx__service_user }}'
+#     group: '{{ nginx__service_group }}'
+#     shell: /sbin/nologin
+#     home: /nonexistent
+#     createhome: false
+#     system: true
+#     state: present
+#   notify: ['restart-nginx']
+#
+# - name: Ensure configuration directories exists
+#   file:
+#     path: '{{ item }}'
+#     owner: root
+#     group: '{{ nginx__service_group }}'
+#     mode: 0750
+#     state: directory
+#   with_items:
+#     - '{{ nginx__config_directory }}'
+#     - '{{ nginx__available_sites_include_directory }}'
+#     - '{{ nginx__enabled_sites_include_directory }}'
+#     - '{{ nginx__ssl_directory }}'
+#
 
-- name: "Ensure service user '{{ nginx__service_user }}' is present"
-  user:
-    name: '{{ nginx__service_user }}'
-    group: '{{ nginx__service_group }}'
-    shell: /sbin/nologin
-    home: /nonexistent
-    createhome: false
-    system: true
-    state: present
-  notify: ['restart-nginx']
+- name: Check size of current ssl session ticket key
+  stat:
+    path: '{{ nginx__ssl_session_ticket_key }}'
+  register: _nginx__session_ticket_key_stat
 
-- name: Ensure configuration directories exists
+- name: Remove bad sized session ticket key
   file:
-    path: '{{ item }}'
-    owner: root
-    group: '{{ nginx__service_group }}'
-    mode: 0750
-    state: directory
-  with_items:
-    - '{{ nginx__config_directory }}'
-    - '{{ nginx__available_sites_include_directory }}'
-    - '{{ nginx__enabled_sites_include_directory }}'
-    - '{{ nginx__ssl_directory }}'
+    path: '{{ nginx__ssl_session_ticket_key }}'
+    state: absent
+  when: _nginx__session_ticket_key_stat.stat is defined and
+    _nginx__session_ticket_key_stat.stat.size !=
+    nginx__ssl_session_ticket_key_length|int
 
 - name: Generate ssl session ticket key if needed
-  command: openssl rand -out {{ nginx__ssl_session_ticket_key }} 80
+  command: >
+    openssl rand
+    -out {{ nginx__ssl_session_ticket_key }}
+    {{ nginx__ssl_session_ticket_key_length|int }}
   args:
     creates: '{{ nginx__ssl_session_ticket_key }}'
   when: nginx__ssl_session_ticket_key is defined
-  register: _nginx__session_ticket_key
+  register: _nginx__session_ticket_key_generate
 
 - name: Ensure restricted permissions on session ticket key
   file:
@@ -65,7 +82,7 @@
     owner: root
     group: '{{ nginx__service_group }}'
     mode: 0640
-  when: _nginx__session_ticket_key is not skipped
+  when: _nginx__session_ticket_key_generate is not skipped
 
 - name: Include virtuals hosts subtasks
   import_tasks: configure-sites.yml

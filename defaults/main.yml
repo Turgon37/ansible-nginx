@@ -151,6 +151,16 @@ nginx__server_tokens: true
 # Defines the default MIME type of a response
 nginx__default_type: application/octet-stream
 
+# If disabled, redirects issued by nginx will be relative
+nginx__absolute_redirect: true
+
+# Enables or disables the use of the primary server name, specified by
+# the server_name directive, in absolute redirects issued by nginx
+nginx__server_name_in_redirect: false
+
+# Enables or disables specifying the port in absolute redirects issued by nginx
+nginx__port_in_redirect: true
+
 
 ## Network Settings
 # Configures name servers used to resolve names of upstream servers
@@ -191,8 +201,8 @@ nginx__keepalive_timeout_header: '{{ nginx__keepalive_timeout }}'
 
 
 ## SSL Settings
-# Enable SSL globally
-nginx__ssl: true
+# Enable SSL globally (for all virtual hosts)
+nginx__ssl: false
 
 # Specifies that server ciphers should be preferred over client ciphers
 nginx__ssl_prefer_server_ciphers: true
@@ -215,6 +225,14 @@ nginx__ssl_session_timeout: 5m
 # Sets a file with the secret key used to encrypt and decrypt
 #  TLS session tickets
 nginx__ssl_session_ticket_key: '{{ nginx__ssl_directory }}/tickets.key'
+
+# Set the size of the session ticket key, default is set according to the
+# installed nginx version
+# See url below to get more information on this option behaviour
+# http://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_session_ticket_key
+nginx__ssl_session_ticket_key_length:
+  "{{ (_nginx__version is version_compare('1.11.8', '>'))
+  |ternary(80, 48) }}"
 
 # Enables or disables session resumption through TLS session tickets
 nginx__ssl_session_tickets: true
@@ -250,8 +268,8 @@ nginx__gzip_http_version: 1.1
 nginx__gzip_min_length: 20
 
 # Enables gzipping of responses for the specified MIME types
-nginx__gzip_types:
-  - text/html
+# text/html is always implied
+nginx__gzip_types: []
 
 # Enables or disables inserting the “Vary: Accept-Encoding” response header
 # field if the directives gzip, gzip_static, or gunzip are active.
@@ -290,6 +308,7 @@ nginx__virtual_hosts: '{{ nginx__global_virtual_hosts
     )
   }}'
 
+# Default mapping of mime types
 nginx__mime_types_map_default:
   - audio/midi: mid midi kar
   - audio/mpeg: mp3
@@ -356,8 +375,8 @@ nginx__mime_types_map_default:
   - image/x-jng: jng
   - image/x-ms-bmp: bmp
   - image/webp: webp
-  - text/css:: css
-  - text/html:: html htm shtml
+  - text/css: css
+  - text/html: html htm shtml
   - text/mathml: mml
   - text/plain: txt
   - text/xml: xml

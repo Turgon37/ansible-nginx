@@ -3,97 +3,78 @@
 - name: Check virtualhost prerequisites
   assert:
     that:
-      - apache2__virtualhost is defined
-      - apache2__virtualhost.name is defined
+      - nginx__virtualhost is defined
+      - nginx__virtualhost.name is defined
+      - nginx__virtualhost.server_name is defined
     msg: >
-      apache2__virtualhost must be defined with specifications and
-      apache2__virtualhost.name must contains the name of the file
+      nginx__virtualhost must be defined with specifications and
+      nginx__virtualhost.name must contains the name of the file
   tags: ['always']
 
 - name: Init some value
   set_fact:
-    _apache2__available_sites_include_directory:
-      "{{ apache2__available_sites_include_directory
-          |d(apache2__server_root
-            |d('/etc/apache2')~'/sites-available')
+    _nginx__available_sites_include_directory:
+      "{{ nginx__available_sites_include_directory
+          |d(nginx__config_directory
+            |d('/etc/nginx')~'/sites-available')
       }}"
-    _apache2__enabled_sites_include_directory:
-      "{{ apache2__enabled_sites_include_directory
-          |d(apache2__server_root
-            |d('/etc/apache2')~'/sites-enabled')
+    _nginx__enabled_sites_include_directory:
+      "{{ nginx__enabled_sites_include_directory
+          |d(nginx__config_directory
+            |d('/etc/nginx')~'/sites-enabled')
       }}"
   tags: ['always']
 
 - name: Compute virtualhost final path
   set_fact:
-    _apache2__virtualhost_path:
-      "{{ _apache2__available_sites_include_directory }}/\
-      {{ apache2__virtualhost.name|replace(' ', '_') }}.conf"
+    _nginx__virtualhost_path:
+      "{{ _nginx__available_sites_include_directory }}/\
+      {{ nginx__virtualhost.name|replace(' ', '_') }}.conf"
   tags: ['always']
 
-# Ensure required folder before the full apache2 role is applied
+# Ensure required folder before the full nginx role is applied
 
 - name: Ensure virtualhosts directories exists
   file:
     path: '{{ item }}'
     state: directory
   with_items:
-    - '{{ _apache2__available_sites_include_directory }}'
-    - '{{ _apache2__enabled_sites_include_directory }}'
-  notify: ['restart-apache2']
-  tags: ['apache2', 'apache2-configure', 'apache2-virtualhost']
+    - '{{ _nginx__available_sites_include_directory }}'
+    - '{{ _nginx__enabled_sites_include_directory }}'
+  notify: ['restart-nginx']
+  tags: ['nginx', 'nginx-configure', 'nginx-virtualhost']
 
 ### virtual host template
 
 - name: Test if virtualhost exists
   stat:
-    path: '{{ _apache2__virtualhost_path }}'
-  register: _apache2__virtualhost_file_stat
-  tags: ['apache2', 'apache2-configure', 'apache2-virtualhost']
+    path: '{{ _nginx__virtualhost_path }}'
+  register: _nginx__virtualhost_file_stat
+  tags: ['nginx', 'nginx-configure', 'nginx-virtualhost']
 
 - name: Ensure temporary permissions on virtualhost file
   file:
-    path: '{{ _apache2__virtualhost_path }}'
+    path: '{{ _nginx__virtualhost_path }}'
     mode: 0644
     state: touch
-  when: apache2__virtualhost.state|d('present') == 'present'
-    and not _apache2__virtualhost_file_stat.stat.exists
-  tags: ['apache2', 'apache2-configure', 'apache2-virtualhost']
+  when: nginx__virtualhost.state|d('present') == 'present'
+    and not _nginx__virtualhost_file_stat.stat.exists
+  tags: ['nginx', 'nginx-configure', 'nginx-virtualhost']
 
-- name: 'Create Apache virtual host {{ apache2__virtualhost.name }}'
+- name: 'Create Nginx virtual host {{ nginx__virtualhost.name }}'
   template:
     src: virtualhost.conf.j2
-    dest: '{{ _apache2__virtualhost_path }}'
-  when: apache2__virtualhost.state|d('present') == 'present'
-  notify: ['restart-apache2']
-  tags: ['apache2', 'apache2-configure', 'apache2-virtualhost']
+    dest: '{{ _nginx__virtualhost_path }}'
+  when: nginx__virtualhost.state|d('present') == 'present'
+  notify: ['reload-nginx']
+  tags: ['nginx', 'nginx-configure', 'nginx-virtualhost']
 
-- name: 'Remove Apache virtual host {{ apache2__virtualhost.name }} if needed'
+- name: 'Remove Nginx virtual host {{ nginx__virtualhost.name }} if needed'
   file:
-    path: '{{ _apache2__virtualhost_path }}'
+    path: '{{ _nginx__virtualhost_path }}'
     state: absent
-  when: apache2__virtualhost.state|d('present') != 'present'
-  notify: ['restart-apache2']
-  tags: ['apache2', 'apache2-configure', 'apache2-virtualhost']
+  when: nginx__virtualhost.state|d('present') != 'present'
+  notify: ['reload-nginx']
+  tags: ['nginx', 'nginx-configure', 'nginx-virtualhost']
 
 ### Virtual host config
-
-- name: Ensure virtualhosts DocumentRoot directory exists
-  file:
-    path: "{{ apache2__virtualhost['document_root'] }}"
-    owner: "{{ apache2__virtualhost['document_root_user']|d(omit) }}"
-    group: "{{ apache2__virtualhost['document_root_group']|d(omit) }}"
-    state: directory
-  when: apache2__virtualhost['document_root'] is defined
-  notify: ['restart-apache2']
-  tags: ['apache2', 'apache2-configure', 'apache2-virtualhost']
-
-- name: Ensure virtualhosts ErrorLog directory exists
-  file:
-    path: "{{ apache2__virtualhost['error_log']|dirname }}"
-    owner: "{{ apache2__virtualhost['error_log_user']|d(omit) }}"
-    group: "{{ apache2__virtualhost['error_log_group']|d(omit) }}"
-    state: directory
-  when: apache2__virtualhost['error_log'] is defined
-  notify: ['restart-apache2']
-  tags: ['apache2', 'apache2-configure', 'apache2-virtualhost']

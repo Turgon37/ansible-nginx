@@ -30,6 +30,12 @@ http {
     server_names_hash_max_size {{ nginx__server_names_hash_max_size }};
     server_tokens {{ macros.stringOrBool(nginx__server_tokens) }};
 
+{% if macros.version_compare_per_branch('1.11.8', '>')|bool %}
+    absolute_redirect {{ nginx__absolute_redirect }};
+{% endif %}
+    server_name_in_redirect {{ macros.bool(nginx__server_name_in_redirect) }};
+    port_in_redirect {{ macros.bool(nginx__port_in_redirect) }};
+
     default_type {{ nginx__default_type }};
     include {{ nginx__mime_types_file}};
 
@@ -61,7 +67,6 @@ http {
 {% if macros.version_compare_per_branch('1.15.0', '<')|bool %}
     ssl {{ macros.bool(nginx__ssl) }};
 {% endif %}
-{% if nginx__ssl|bool %}
     ssl_prefer_server_ciphers {{ macros.bool(nginx__ssl_prefer_server_ciphers) }};
     ssl_protocols {{ nginx__ssl_protocols|join(' ') }};
     ssl_session_cache {{ nginx__ssl_session_cache }};
@@ -80,25 +85,24 @@ http {
 {%     endif %}
 {%   endif %}
     ssl_stapling_verify {{ macros.bool(nginx__ssl_stapling_verify) }};
-{% endif %}
 
     ##
     # Gzip Settings
     ##
     gzip {{ macros.bool(nginx__gzip) }};
-{% if nginx__gzip|bool %}
-{%   if macros.version_compare_per_branch('0.6.23', '>')|bool %}
+{% if macros.version_compare_per_branch('0.6.23', '>')|bool %}
     gzip_disable{% if nginx__gzip_disable is string %} "{{ nginx__gzip_disable }}"{% else %}{% for regex in nginx__gzip_disable %} "{{ regex }}"{% endfor %}{% endif %};
-{%   endif %}
+{% endif %}
+{% if nginx__gzip_types|length %}
     gzip_types {{ nginx__gzip_types|join(' ') }};
+{% endif %}
     gzip_vary {{ macros.bool(nginx__gzip_vary) }};
     gzip_proxied {{ nginx__gzip_proxied if nginx__gzip_proxied is string else nginx__gzip_proxied|join(' ') }};
     gzip_comp_level {{ nginx__gzip_comp_level|int }};
     gzip_http_version {{ nginx__gzip_http_version }};
     gzip_min_length {{ nginx__gzip_min_length}};
-{%   if nginx__gzip_buffers is defined %}
+{% if nginx__gzip_buffers is defined %}
     gzip_buffers {{ nginx__gzip_buffers }};
-{%   endif %}
 {% endif %}
 
     ##
