@@ -230,6 +230,41 @@ nginx__ssl_stapling: false
 nginx__ssl_stapling_verify: false
 
 
+## Gzip Settings
+# Enable Gzip globally
+nginx__gzip: true
+
+# Disables gzipping of responses for requests with “User-Agent” header fields
+# matching any of the specified regular expressions.
+nginx__gzip_disable:
+  - msie6
+
+# Sets a gzip compression level of a response
+nginx__gzip_comp_level: 1
+
+# Sets the minimum HTTP version of a request required to compress a response.
+nginx__gzip_http_version: 1.1
+
+# Sets the minimum length of a response that will be gzipped.
+# The length is determined only from the “Content-Length” response header field
+nginx__gzip_min_length: 20
+
+# Enables gzipping of responses for the specified MIME types
+nginx__gzip_types:
+  - text/html
+
+# Enables or disables inserting the “Vary: Accept-Encoding” response header
+# field if the directives gzip, gzip_static, or gunzip are active.
+nginx__gzip_vary: true
+
+# Enables or disables gzipping of responses for proxied requests
+# depending on the request and response.
+nginx__gzip_proxied: 'off'
+
+# Sets the number and size of buffers used to compress a response
+# nginx__gzip_buffers: 16 8k
+
+
 ## Nginx vhost
 # If true, all virtual hosts that are not in apache2__virtual_hosts
 # will be removed

@@ -14,3 +14,11 @@
           or 'shared' in nginx__ssl_session_cache
       - nginx__keepalive_disable in ['safari', 'msie6']
       - nginx__keepalive_requests|int
+      - 1 <= nginx__gzip_comp_level|int and nginx__gzip_comp_level|int <= 9
+      - nginx__gzip_http_version in [1.0, 1.1]
+      - ([nginx__gzip_proxied] if nginx__gzip_proxied is string
+        else nginx__gzip_proxied)|intersect(
+          ['off', 'expired', 'no-cache', 'no-store', 'private',
+          'no_last_modified', 'no_etag', 'auth', 'any']
+          ) == ([nginx__gzip_proxied] if nginx__gzip_proxied is string
+            else nginx__gzip_proxied)

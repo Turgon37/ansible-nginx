@@ -57,6 +57,15 @@
   args:
     creates: '{{ nginx__ssl_session_ticket_key }}'
   when: nginx__ssl_session_ticket_key is defined
+  register: _nginx__session_ticket_key
+
+- name: Ensure restricted permissions on session ticket key
+  file:
+    path: '{{ nginx__ssl_session_ticket_key }}'
+    owner: root
+    group: '{{ nginx__service_group }}'
+    mode: 0640
+  when: _nginx__session_ticket_key is not skipped
 
 - name: Include virtuals hosts subtasks
   import_tasks: configure-sites.yml
