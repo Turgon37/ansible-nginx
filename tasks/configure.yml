@@ -52,6 +52,55 @@
     - '{{ nginx__enabled_sites_include_directory }}'
     - '{{ nginx__ssl_directory }}'
 
+# ssl dh pa$rameters
+
+- name: Check presence of DH parameters
+  stat:
+    path: '{{ nginx__ssl_dhparam }}'
+  register: _nginx__dhparams_stat
+
+- name: Check size of current DH parameters
+  shell: >
+    openssl dhparam
+    -in {{ nginx__ssl_dhparam }}
+    -text -noout 2>&1
+    | grep Parameters
+    | sed 's/.*Parameters:\s*(\([0-9]\+\).*/\1/'
+  when: _nginx__dhparams_stat.stat is defined
+    and _nginx__dhparams_stat.stat.exists
+  changed_when: false
+  check_mode: false
+  register: _nginx__dhparams_size
+
+- name: Remove bad sized DH parameters
+  file:
+    path: '{{ nginx__ssl_dhparam }}'
+    state: absent
+  when: _nginx__dhparams_stat.stat is defined
+    and _nginx__dhparams_stat.stat.exists
+    and _nginx__dhparams_size.stdout|int !=
+      nginx__ssl_dhparam_length|int
+
+- name: Generate DH parameters if needed
+  command: >
+    openssl dhparam
+    -out {{ nginx__ssl_dhparam }}
+    {{ nginx__ssl_dhparam_length|int }}
+  args:
+    creates: '{{ nginx__ssl_dhparam }}'
+  when: nginx__ssl_dhparam is defined
+  register: _nginx__dhparams_generate
+  notify: ['reload-nginx']
+
+- name: Ensure restricted permissions on DH parameters
+  file:
+    path: '{{ nginx__ssl_dhparam }}'
+    owner: root
+    group: '{{ nginx__service_group }}'
+    mode: 0640
+  when: _nginx__dhparams_generate is not skipped
+
+# ssl session key file
 
 - name: Check size of current ssl session ticket key
   stat:
@@ -76,6 +125,7 @@
     creates: '{{ nginx__ssl_session_ticket_key }}'
   when: nginx__ssl_session_ticket_key is defined
   register: _nginx__session_ticket_key_generate
+  notify: ['reload-nginx']
 
 - name: Ensure restricted permissions on session ticket key
   file:

@@ -247,6 +247,15 @@ nginx__ssl_stapling: false
 # Enables or disables verification of OCSP responses by the server.
 nginx__ssl_stapling_verify: false
 
+# Specifies the enabled ciphers
+nginx__ssl_ciphers: '{{ nginx__ssl_ciphers_default }}'
+
+# Specifies a file with DH parameters for DHE ciphers.
+nginx__ssl_dhparam: '{{ nginx__ssl_directory }}/dhparams.pem'
+
+# Specify length of DH parameters file
+nginx__ssl_dhparam_length: 2048
+
 
 ## Gzip Settings
 # Enable Gzip globally
@@ -308,6 +317,50 @@ nginx__virtual_hosts: '{{ nginx__global_virtual_hosts
       else {}
     )
   }}'
+
+# Default list of secure ciphers
+nginx__ssl_ciphers_default:
+  - ECDHE-RSA-AES128-GCM-SHA256
+  - ECDHE-ECDSA-AES128-GCM-SHA256
+  - ECDHE-RSA-AES256-GCM-SHA384
+  - ECDHE-ECDSA-AES256-GCM-SHA384
+  - DHE-RSA-AES128-GCM-SHA256
+  - DHE-DSS-AES128-GCM-SHA256
+  - kEDH+AESGCM
+  - ECDHE-RSA-AES128-SHA256
+  - ECDHE-ECDSA-AES128-SHA256
+  - ECDHE-RSA-AES128-SHA
+  - ECDHE-ECDSA-AES128-SHA
+  - ECDHE-RSA-AES256-SHA384
+  - ECDHE-ECDSA-AES256-SHA384
+  - ECDHE-RSA-AES256-SHA
+  - ECDHE-ECDSA-AES256-SHA
+  - DHE-RSA-AES128-SHA256
+  - DHE-RSA-AES128-SHA
+  - DHE-DSS-AES128-SHA256
+  - DHE-RSA-AES256-SHA256
+  - DHE-DSS-AES256-SHA
+  - DHE-RSA-AES256-SHA
+  - AES128-GCM-SHA256
+  - AES256-GCM-SHA384
+  - AES128-SHA256
+  - AES256-SHA256
+  - AES128-SHA
+  - AES256-SHA
+  - AES
+  - CAMELLIA
+  - DES-CBC3-SHA
+  - '!aNULL'
+  - '!eNULL'
+  - '!EXPORT'
+  - '!DES'
+  - '!RC4'
+  - '!MD5'
+  - '!PSK'
+  - '!aECDH'
+  - '!EDH-DSS-DES-CBC3-SHA'
+  - '!EDH-RSA-DES-CBC3-SHA'
+  - '!KRB5-DES-CBC3-SHA'
 
 # Default mapping of mime types
 nginx__mime_types_map_default:
