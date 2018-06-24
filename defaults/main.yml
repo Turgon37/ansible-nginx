@@ -256,6 +256,10 @@ nginx__ssl_dhparam: '{{ nginx__ssl_directory }}/dhparams.pem'
 # Specify length of DH parameters file
 nginx__ssl_dhparam_length: 2048
 
+# Specifies a curve for ECDHE ciphers
+nginx__ssl_ecdh_curve: "{{ (_nginx__version is version_compare('1.11.0', '>'))
+  |ternary('auto', 'prime256v1') }}"
+
 
 ## Gzip Settings
 # Enable Gzip globally

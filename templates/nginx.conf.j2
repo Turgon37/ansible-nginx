@@ -70,6 +70,9 @@ http {
     ssl_prefer_server_ciphers {{ macros.bool(nginx__ssl_prefer_server_ciphers) }};
     ssl_protocols {{ nginx__ssl_protocols|join(' ') }};
     ssl_ciphers "{{ nginx__ssl_ciphers|join(':') }}";
+{% if macros.version_compare_per_branch('1.0.6', '1.1.0', '>')|bool %}
+    ssl_ecdh_curve {{ nginx__ssl_ecdh_curve }};
+{% endif %}
 {% if macros.version_compare_per_branch('0.7.2', '>')|bool %}
     ssl_dhparam {{ nginx__ssl_dhparam }};
 {% endif %}
