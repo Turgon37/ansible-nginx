@@ -52,6 +52,16 @@
     - '{{ nginx__enabled_sites_include_directory }}'
     - '{{ nginx__ssl_directory }}'
 
+- name: Ensure working directories exists
+  file:
+    path: '{{ item }}'
+    owner: '{{ nginx__service_user }}'
+    group: '{{ nginx__service_group }}'
+    mode: 0750
+    state: directory
+  with_items:
+    - '{{ nginx__logs_directory }}'
+
 # ssl dh pa$rameters
 
 - name: Check presence of DH parameters

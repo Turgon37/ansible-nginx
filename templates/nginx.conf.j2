@@ -62,6 +62,17 @@ http {
     keepalive_timeout {{ nginx__keepalive_timeout }} {{ nginx__keepalive_timeout_header }};
 
     ##
+    # Logs Settings
+    ##
+{% for name, format in nginx__log_format|dictsort %}
+{%   if format is mapping %}
+    log_format {{ name }}{% if macros.version_compare_per_branch('1.11.8', '>')|bool %} escape={{ format.escape|d('default') }}{% endif %} '{{ format.format }}';
+{%   else %}
+    log_format {{ name }}{% if macros.version_compare_per_branch('1.11.8', '>')|bool %} escape=default{% endif %} '{{ format }}';
+{%   endif %}
+{% endfor %}
+
+    ##
     # SSL Settings
     ##
 {% if macros.version_compare_per_branch('1.15.0', '<')|bool %}
