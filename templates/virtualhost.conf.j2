@@ -1,6 +1,4 @@
 {%- import '_macros.j2' as macros with context -%}
-{%- import '_sections.j2' as sections -%}
-{%- import '_directives.j2' as directives -%}
 {#
  # Produce nginx options for listen directive based on virtualhost settings
  #
@@ -39,9 +37,9 @@ server {
     # Default
     listen {{ 443 if vhost.ssl|d(false)|bool else 80 }} {{ listen_options(vhost) }};
 {% else %}
-    # IPs
 {#   treat all ip based listen #}
 {%   if vhost.listen_ip is defined %}
+    # IPs
 {#     simple string declaration using 'ip:port' or simply 'ip' #}
 {%     if vhost.listen_ip is string %}
     listen {{ vhost.listen_ip }} {{ listen_options(vhost) }};
@@ -56,9 +54,9 @@ server {
 {%       endfor %}
 {%     endif %}
 {%   endif %}
-    # Unix
 {#   treat all unix based listen #}
 {%   if vhost.listen_unix is defined %}
+    # Unix
 {#     simple string declaration using 'path' #}
 {%     if vhost.listen_unix is string %}
     listen {{ vhost.listen_unix }} {{ listen_options(vhost) }};
@@ -84,11 +82,11 @@ server {
     ssl_certificate_key {{ vhost.ssl_certificate_key }};
 {% endif %}
 
-{% for sect in vhost.sections|d([]) %}
-{{   sections.section(sect)|indent(4, True) }}
+{% for dir in vhost.directives|d([]) %}
+{{   macros.directive(dir)|indent(4, True) }}
 {% endfor %}
 
-{% for dir in vhost.directives|d([]) %}
-{{   directives.directive(dir)|indent(4, True) }}
+{% for sect in vhost.sections|d([]) %}
+{{   macros.section(sect)|indent(4, True) }}
 {% endfor %}
 }

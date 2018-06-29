@@ -38,3 +38,89 @@
 {{   (_nginx__version|d('0.0') is version_compare(_mainline_version, operator))|bool }}
 {%- endif -%}
 {%- endmacro -%}
+
+
+{#
+ # Router for sections block
+ #
+ # @param section : specification of a section to produce
+ # @return string
+ #}
+{%- macro section(sec) -%}
+{%    if sec.type == 'location' %}
+{{ location(sec.path, sec.modifier|d(none), sec.directives|d([])) }}
+{%    else %}
+{{ 'The section type "'~sec.type~'" is not implemented.'~0/0 }} {# ZeroDivisionError: #}
+{%    endif %}
+{%- endmacro -%}
+
+
+{#
+ # Produce a Location section
+ #
+ # @param path : the url path the location will apply to
+ # @param directives : the list of directives
+ # @return string
+ #}
+{%- macro location(path, modifier, directives) -%}
+location {% if modifier is not none %}{{ modifier }}{% endif %} "{{ path }}" {
+{% for dir in directives %}
+{{   directive(dir)|indent(4, true) }}
+{% endfor %}
+}
+{%- endmacro -%}
+
+
+
+
+{#
+ # Router for directives
+ #
+ # @param line : specification of a directive to produce
+ # @return string
+ #}
+{%- macro directive(line) -%}
+{%-   if line is not mapping or line.keys()|length == 0 or line.values()|length == 0 -%}
+FAIL ### a directive must be a mapping with one key and one value
+{%-   else -%}
+{%-     set name = (line.keys()|list)[0] -%}
+{%-     set value = (line.values()|list)[0] -%}
+{%-     if name == 'access_log' -%}
+{%-       if value is mapping %}
+access_log {{ value.path }}{% if value.format is defined %} {{ value.format }}{% endif %}{% if value.buffer_size is defined %} buffer={{ value.buffer_size }}{% endif %}{% if value.gzip_level is defined %} gzip={{ value.gzip_level }}{% endif %}{% if value.flush_time is defined %} flush={{ value.flush_time }}{% endif %}{% if value.condition is defined %} if={{ value.condition }}{% endif %};
+{%-       else -%}
+access_log {% if value == 'off' or value == false %}off{% else %}"{{ value }}"{% endif %};
+{%-       endif -%}
+{%-     elif name == 'auth_basic' -%}
+auth_basic {% if value == 'off' %}off{% else %}"{{ value }}"{% endif %};
+{%-     elif name == 'auth_basic_user_file' -%}
+auth_basic_user_file {{ value }};
+{%-     elif name == 'index' -%}
+index {{ value }};
+{%-     elif name == 'log_not_found' -%}
+log_not_found {{ bool(value) }};
+{%-     elif name == 'return' -%}
+{%-       if value is mapping %}
+return {{ value.code }}{% if value.code is number and value.code|int in [301, 302, 303, 307, 308] and value.url is defined %} "{{ value.url }}"{% endif %};
+{%-       else -%}
+return {{ value }};
+{%-       endif -%}
+{%-     elif name == 'root' -%}
+root {{ value }};
+{%-     elif name == 'satisfy' -%}
+satisfy {{ value }};
+{%-     elif name == 'try_files' -%}
+{%-       if value is string %}
+try_files {{ value }};
+{%-       else %}
+try_files {{ value|join(' ') }};
+{%-       endif %}
+{%-     elif name == 'extra_parameters' -%}
+{%-        for param in value|d([]) %}
+{{ param.strip(';') }};
+{%        endfor -%}
+{%-     else -%}
+FAIL ### The directive name "{{ name }}" is not implemented.
+{%-     endif -%}
+{%-   endif -%}
+{%- endmacro -%}
