@@ -48,9 +48,11 @@
  #}
 {%- macro section(sec) -%}
 {%    if sec.type == 'location' %}
-{{ location(sec.path, sec.modifier|d(none), sec.directives|d([])) }}
+{{ location(sec) }}
+{%    elif sec.type == 'if' %}
+{{ ifsection(sec) }}
 {%    else %}
-{{ 'The section type "'~sec.type~'" is not implemented.'~0/0 }} {# ZeroDivisionError: #}
+FAIL ## The section type "{{ sec.type }}" is not implemented
 {%    endif %}
 {%- endmacro -%}
 
@@ -58,13 +60,29 @@
 {#
  # Produce a Location section
  #
- # @param path : the url path the location will apply to
- # @param directives : the list of directives
+ # @param loc : the location specifications
  # @return string
  #}
-{%- macro location(path, modifier, directives) -%}
-location {% if modifier is not none %}{{ modifier }}{% endif %} "{{ path }}" {
-{% for dir in directives %}
+{%- macro location(loc) -%}
+location {% if loc.modifier is defined %}{{ loc.modifier }}{% endif %} "{{ loc.path }}" {
+{% for sec in loc.sections|d([]) %}
+{{   section(sec)|indent(4, true) }}
+{% endfor %}
+{% for dir in loc.directives|d([]) %}
+{{   directive(dir)|indent(4, true) }}
+{% endfor %}
+}
+{%- endmacro -%}
+
+{#
+ # Produce an If section
+ #
+ # @param ifsec : the if specifications
+ # @return string
+ #}
+{%- macro ifsection(ifsec) -%}
+if ( {{ ifsec.condition }} ) {
+{% for dir in ifsec.directives|d([]) %}
 {{   directive(dir)|indent(4, true) }}
 {% endfor %}
 }
@@ -91,10 +109,32 @@ access_log {{ value.path }}{% if value.format is defined %} {{ value.format }}{%
 {%-       else -%}
 access_log {% if value == 'off' or value == false %}off{% else %}"{{ value }}"{% endif %};
 {%-       endif -%}
+{%-     elif name == 'add_header' -%}
+{%-       if value is mapping %}
+add_header "{{ value.name }}" "{{ value.value }}"{% if value.always is defined and value.always|bool %} always{% endif %};
+{%-       else -%}
+FAIL ### add_header must be a mapping
+{%-       endif -%}
+{%-     elif name == 'allow' -%}
+{%-       if value is string %}
+allow {% if value in ['unix:', 'all'] %}{{ value }}{% else %}"{{ value }}"{% endif %};
+{%-       else -%}
+{%-         for item in value|list -%}
+allow {% if item in ['unix:', 'all'] %}{{ item }}{% else %}"{{ item }}"{% endif %};
+{%-         endfor -%}
+{%-       endif -%}
 {%-     elif name == 'auth_basic' -%}
 auth_basic {% if value == 'off' %}off{% else %}"{{ value }}"{% endif %};
 {%-     elif name == 'auth_basic_user_file' -%}
 auth_basic_user_file {{ value }};
+{%-     elif name == 'deny' -%}
+{%-       if value is string %}
+deny {% if value in ['unix:', 'all'] %}{{ value }}{% else %}"{{ value }}"{% endif %};
+{%-       else -%}
+{%-         for item in value|list -%}
+deny {% if item in ['unix:', 'all'] %}{{ item }}{% else %}"{{ item }}"{% endif %};
+{%-         endfor -%}
+{%-       endif -%}
 {%-     elif name == 'index' -%}
 index {{ value }};
 {%-     elif name == 'log_not_found' -%}
