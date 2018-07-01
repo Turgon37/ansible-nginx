@@ -1,0 +1,188 @@
+---
+
+- name: Get installed version of Nginx
+  command: /usr/bin/env nginx -v
+  when: ansible_local.nginx is not defined
+  changed_when: false
+  check_mode: false
+  register: _nginx__version_raw
+
+- name: Create _nginx__version variable
+  set_fact:
+    _nginx__version:
+      "{{ _nginx__version_raw.stderr.split('/')[1]|trim
+      if _nginx__version_raw is not skipped
+      else ansible_local.nginx.version_full }}"
+
+- name: Create _nginx__branch variable
+  set_fact:
+    _nginx__branch:
+      "{{ (_nginx__version|int is even)|ternary('stable', 'mainline')
+      if _nginx__version_raw is not skipped
+      else ansible_local.nginx.branch }}"
+
+- name: "Ensure service group '{{ nginx__service_group }}' is present"
+  group:
+    name: '{{ nginx__service_group }}'
+    system: true
+    state: present
+  notify: ['restart-nginx']
+
+- name: "Ensure service user '{{ nginx__service_user }}' is present"
+  user:
+    name: '{{ nginx__service_user }}'
+    group: '{{ nginx__service_group }}'
+    shell: /sbin/nologin
+    home: /nonexistent
+    createhome: false
+    system: true
+    state: present
+  notify: ['restart-nginx']
+
+- name: Ensure configuration directories exists
+  file:
+    path: '{{ item }}'
+    owner: root
+    group: '{{ nginx__service_group }}'
+    mode: 0750
+    state: directory
+  with_items:
+    - '{{ nginx__config_directory }}'
+    - '{{ nginx__available_sites_include_directory }}'
+    - '{{ nginx__enabled_sites_include_directory }}'
+    - '{{ nginx__ssl_directory }}'
+
+- name: Ensure working directories exists
+  file:
+    path: '{{ item }}'
+    owner: '{{ nginx__service_user }}'
+    group: '{{ nginx__service_group }}'
+    mode: 0750
+    state: directory
+  with_items:
+    - '{{ nginx__logs_directory }}'
+
+- name: Create custom scripts directory
+  file:
+    path: '{{ item }}'
+    owner: root
+    group: root
+    mode: 0755
+    state: directory
+  with_items:
+    - '{{ nginx__custom_scripts_directory }}'
+
+- name: Install nginx custom scripts
+  copy:
+    src: 'files/{{ item }}'
+    dest: '{{ nginx__custom_scripts_directory }}/{{ item }}'
+    owner: root
+    group: root
+    mode: 0755
+  with_items:
+    - nginx-server-status.py
+
+# ssl dh pa$rameters
+
+- name: Check presence of DH parameters
+  stat:
+    path: '{{ nginx__ssl_dhparam }}'
+  register: _nginx__dhparams_stat
+
+- name: Check size of current DH parameters
+  shell: >
+    openssl dhparam
+    -in {{ nginx__ssl_dhparam }}
+    -text -noout 2>&1
+    | grep Parameters
+    | sed 's/.*Parameters:\s*(\([0-9]\+\).*/\1/'
+  when: _nginx__dhparams_stat.stat is defined
+    and _nginx__dhparams_stat.stat.exists
+  changed_when: false
+  check_mode: false
+  register: _nginx__dhparams_size
+
+- name: Remove bad sized DH parameters
+  file:
+    path: '{{ nginx__ssl_dhparam }}'
+    state: absent
+  when: _nginx__dhparams_stat.stat is defined
+    and _nginx__dhparams_stat.stat.exists
+    and _nginx__dhparams_size.stdout|int !=
+      nginx__ssl_dhparam_length|int
+
+- name: Generate DH parameters if needed
+  command: >
+    openssl dhparam
+    -out {{ nginx__ssl_dhparam }}
+    {{ nginx__ssl_dhparam_length|int }}
+  args:
+    creates: '{{ nginx__ssl_dhparam }}'
+  when: nginx__ssl_dhparam is defined
+  register: _nginx__dhparams_generate
+  notify: ['reload-nginx']
+
+- name: Ensure restricted permissions on DH parameters
+  file:
+    path: '{{ nginx__ssl_dhparam }}'
+    owner: root
+    group: '{{ nginx__service_group }}'
+    mode: 0640
+  when: _nginx__dhparams_generate is not skipped
+
+# ssl session key file
+
+- name: Check size of current ssl session ticket key
+  stat:
+    path: '{{ nginx__ssl_session_ticket_key }}'
+  register: _nginx__session_ticket_key_stat
+
+- name: Remove bad sized session ticket key
+  file:
+    path: '{{ nginx__ssl_session_ticket_key }}'
+    state: absent
+  when: _nginx__session_ticket_key_stat.stat is defined
+    and _nginx__session_ticket_key_stat.stat.exists
+    and _nginx__session_ticket_key_stat.stat.size !=
+      nginx__ssl_session_ticket_key_length|int
+
+- name: Generate ssl session ticket key if needed
+  command: >
+    openssl rand
+    -out {{ nginx__ssl_session_ticket_key }}
+    {{ nginx__ssl_session_ticket_key_length|int }}
+  args:
+    creates: '{{ nginx__ssl_session_ticket_key }}'
+  when: nginx__ssl_session_ticket_key is defined
+  register: _nginx__session_ticket_key_generate
+  notify: ['reload-nginx']
+
+- name: Ensure restricted permissions on session ticket key
+  file:
+    path: '{{ nginx__ssl_session_ticket_key }}'
+    owner: root
+    group: '{{ nginx__service_group }}'
+    mode: 0640
+  when: _nginx__session_ticket_key_generate is not skipped
+
+- name: Include virtuals hosts subtasks
+  import_tasks: configure-sites.yml
+
+- name: Setup mime types mapping file
+  template:
+    src: mime.types.conf.j2
+    dest: '{{ nginx__mime_types_file }}'
+    owner: root
+    group: '{{ nginx__service_group }}'
+    mode: 0640
+  notify: ['reload-nginx']
+
+- name: Setup main configuration file
+  template:
+    src: nginx.conf.j2
+    dest: '{{ nginx__config_file }}'
+    owner: root
+    group: '{{ nginx__service_group }}'
+    mode: 0640
+    validate: '{{ nginx__configuration_validator }}'
+  notify: ['reload-nginx']

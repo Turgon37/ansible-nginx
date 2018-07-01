@@ -1,0 +1,18 @@
+---
+
+- name: Configure zabbix userparameters
+  include_role:
+    name: zabbix-agent
+    tasks_from: types/user_parameter
+  vars:
+    zabbix_agent__userparameter:
+      name: nginx
+      userparameters:
+        - key: nginx.server_status
+          command: >-
+            {{ nginx__custom_scripts_directory }}/nginx-server-status.py
+            --port {{ nginx__monitoring_port }}
+            --url {{ nginx__monitoring_url }}
+          comment: Get nginx server status
+      state: present
+  tags: ['nginx', 'nginx-monitoring']

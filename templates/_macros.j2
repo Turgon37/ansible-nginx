@@ -1,0 +1,174 @@
+{#
+ # Produce a boolean value in nginx format
+ #
+ # @param value : the value of the boolean
+ # @return string
+ #}
+{%- macro bool(value) -%}
+{{ value|bool|ternary('on', 'off') }}
+{%- endmacro -%}
+
+{#
+ # Filter for parameters that accepts
+ # boolean and string values
+ #
+ # @param value : the value of the parameter
+ # @return string
+ #}
+{%- macro stringOrBool(value) -%}
+{{ value if value is string else bool(value) }}
+{%- endmacro -%}
+
+{#
+ # Compare current nginx version againt stable or mainline version
+ # using the _nginx__branch fact
+ #
+ # @param stable_version : the stable version to compare
+ # @param mainline_version : the mainline version to compare
+ # @param oper : the operator to use for comparaison as ansible version_compare
+ #                   takes
+ # @return boolean string (you must apply |bool filter on result)
+ #}
+{%- macro version_compare_per_branch(stable_version, mainline_version, oper=None) -%}
+{% set operator = oper or mainline_version %}
+{% set _mainline_version = (oper is not none)|ternary(mainline_version, stable_version) %}
+{%- if _nginx__branch == 'stable' -%}
+{{   (_nginx__version|d('0.0') is version_compare(stable_version, operator))|bool }}
+{%- elif _nginx__branch == 'mainline' -%}
+{{   (_nginx__version|d('0.0') is version_compare(_mainline_version, operator))|bool }}
+{%- endif -%}
+{%- endmacro -%}
+
+
+{#
+ # Router for sections block
+ #
+ # @param section : specification of a section to produce
+ # @return string
+ #}
+{%- macro section(sec) -%}
+{%    if sec.type == 'location' %}
+{{ location(sec) }}
+{%    elif sec.type == 'if' %}
+{{ ifsection(sec) }}
+{%    else %}
+FAIL ## The section type "{{ sec.type }}" is not implemented
+{%    endif %}
+{%- endmacro -%}
+
+
+{#
+ # Produce a Location section
+ #
+ # @param loc : the location specifications
+ # @return string
+ #}
+{%- macro location(loc) -%}
+location {% if loc.modifier is defined %}{{ loc.modifier }}{% endif %} "{{ loc.path }}" {
+{% for sec in loc.sections|d([]) %}
+{{   section(sec)|indent(4, true) }}
+{% endfor %}
+{% for dir in loc.directives|d([]) %}
+{{   directive(dir)|indent(4, true) }}
+{% endfor %}
+}
+{%- endmacro -%}
+
+{#
+ # Produce an If section
+ #
+ # @param ifsec : the if specifications
+ # @return string
+ #}
+{%- macro ifsection(ifsec) -%}
+if ( {{ ifsec.condition }} ) {
+{% for dir in ifsec.directives|d([]) %}
+{{   directive(dir)|indent(4, true) }}
+{% endfor %}
+}
+{%- endmacro -%}
+
+
+
+
+{#
+ # Router for directives
+ #
+ # @param line : specification of a directive to produce
+ # @return string
+ #}
+{%- macro directive(line) -%}
+{%-   if line is not mapping or line.keys()|length == 0 or line.values()|length == 0 -%}
+FAIL ### a directive must be a mapping with one key and one value
+{%-   else -%}
+{%-     set name = (line.keys()|list)[0] -%}
+{%-     set value = (line.values()|list)[0] -%}
+{%-     if name == 'access_log' -%}
+{%-       if value is mapping %}
+access_log {{ value.path }}{% if value.format is defined %} {{ value.format }}{% endif %}{% if value.buffer_size is defined %} buffer={{ value.buffer_size }}{% endif %}{% if value.gzip_level is defined %} gzip={{ value.gzip_level }}{% endif %}{% if value.flush_time is defined %} flush={{ value.flush_time }}{% endif %}{% if value.condition is defined %} if={{ value.condition }}{% endif %};
+{%-       else -%}
+access_log {% if value == 'off' or value == false %}off{% else %}"{{ value }}"{% endif %};
+{%-       endif -%}
+{%-     elif name == 'add_header' -%}
+{%-       if value is mapping %}
+add_header "{{ value.name }}" "{{ value.value }}"{% if value.always is defined and value.always|bool %} always{% endif %};
+{%-       else -%}
+FAIL ### add_header must be a mapping
+{%-       endif -%}
+{%-     elif name == 'allow' -%}
+{%-       if value is string %}
+allow {% if value in ['unix:', 'all'] %}{{ value }}{% else %}"{{ value }}"{% endif %};
+{%-       else -%}
+{%-         for item in value|list -%}
+allow {% if item in ['unix:', 'all'] %}{{ item }}{% else %}"{{ item }}"{% endif %};
+{%          endfor -%}
+{%-       endif -%}
+{%-     elif name == 'auth_basic' -%}
+auth_basic {% if value == 'off' %}off{% else %}"{{ value }}"{% endif %};
+{%-     elif name == 'auth_basic_user_file' -%}
+auth_basic_user_file {{ value }};
+{%-     elif name == 'deny' -%}
+{%-       if value is string %}
+deny {% if value in ['unix:', 'all'] %}{{ value }}{% else %}"{{ value }}"{% endif %};
+{%-       else -%}
+{%-         for item in value|list -%}
+deny {% if item in ['unix:', 'all'] %}{{ item }}{% else %}"{{ item }}"{% endif %};
+{%          endfor -%}
+{%-       endif -%}
+{%-     elif name == 'index' -%}
+index {{ value }};
+{%-     elif name == 'keepalive_timeout' -%}
+{%-       if value is mapping -%}
+keepalive_timeout {{ value.timeout }}{% if value.timeout_header is defined %} {{ value.timeout_header }}{% endif %};
+{%-       else -%}
+keepalive_timeout {{ value }};
+{%-       endif -%}
+{%-     elif name == 'log_not_found' -%}
+log_not_found {{ bool(value) }};
+{%-     elif name == 'return' -%}
+{%-       if value is mapping %}
+return {{ value.code }}{% if value.code is number and value.code|int in [301, 302, 303, 307, 308] and value.url is defined %} "{{ value.url }}"{% endif %};
+{%-       else -%}
+return {{ value }};
+{%-       endif -%}
+{%-     elif name == 'root' -%}
+root {{ value }};
+{%-     elif name == 'satisfy' -%}
+satisfy {{ value }};
+{%-     elif name == 'stub_status' -%}
+stub_status{% if version_compare_per_branch('1.7.5', '<')|bool %} on{% endif %};
+{%-     elif name == 'try_files' -%}
+{%-       if value is string %}
+try_files {{ value }};
+{%-       else %}
+try_files {{ value|join(' ') }};
+{%-       endif %}
+{%-     elif name == 'extra_parameters' -%}
+{%-        for param in value|d([]) %}
+{{ param.strip(';') }};
+{%        endfor -%}
+{%-     else -%}
+FAIL ### The directive name "{{ name }}" is not implemented.
+{%-     endif -%}
+{%-   endif -%}
+{%- endmacro -%}

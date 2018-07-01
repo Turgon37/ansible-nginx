@@ -1,0 +1,503 @@
+---
+# defaults file for nginx
+
+# Enable facts deploiement
+nginx__facts: true
+
+# Choose the monitoring backend to configure (if available)
+# nginx__monitoring:
+
+
+### INSTALL CONFIGURATION
+# Choose the source of nginx repository
+# in os, nginx
+nginx__packages_source: os
+
+# Choose which branch to track version from
+# in 'stable', 'mainline'
+nginx__provider_branch: stable
+
+# Base url for nginx provider
+nginx__provider_base_url:
+  https://nginx.org/packages
+  {%- if nginx__provider_branch == 'mainline' -%}/mainline{%- endif -%}
+
+# List of GPG keys per distributions
+nginx__provider_gpg_keys:
+  Debian:
+    - id: 573BFD6B3D8FBC641079A6ABABF5BD827BD9BF62
+      keyserver: ha.pool.sks-keyservers.net
+      state: absent
+
+# List of packages repositories per distributions
+nginx__provider_repositories:
+  Debian:
+    - >-
+      deb
+      {{ nginx__provider_base_url }}/{{ ansible_distribution|lower }}/
+      {{ ansible_distribution_release }}
+      nginx
+    - >-
+      deb-src
+      {{ nginx__provider_base_url }}/{{ ansible_distribution|lower }}/
+      {{ ansible_distribution_release }}
+      nginx
+  Centos:
+    - "{{ nginx__provider_base_url~'/centos/'~
+      ansible_distribution_major_version|int }}/$basearch/"
+  RedHat:
+    - "{{ nginx__provider_base_url~'/rhel/'~
+      ansible_distribution_major_version|int }}/$basearch/"
+  Suse:
+    - '{{ nginx__provider_base_url }}/sles/12'
+
+# The name of the nginx package
+nginx__packages_names:
+  - nginx
+
+# Where to place zabbix custom scripts
+nginx__custom_scripts_directory: /opt/nginx-scripts
+
+
+### SERVICE CONFIGURATION
+# ---------------------------------------
+# The user and group that bind will run as
+nginx__service_user: www-data
+nginx__service_group: www-data
+
+# The name of the systemd nginx service
+nginx__service_name: nginx
+
+# If true the nginx service will be started and enabled
+nginx__service_enabled: true
+
+# If this is set to true,
+# ansible will automatically restart nginx daemon on changes
+nginx__service_restartable: true
+
+# Path to the must restart stamp file
+nginx__service_restart_stamp_file: /var/local/nginx-must-restart-stamp
+
+# Path to systemd override directory
+nginx__systemd_override_options_directory:
+  '/etc/systemd/system/{{ nginx__service_name }}.service.d'
+
+# Location of the nginx pidfile
+nginx__pidfile: /var/run/nginx.pid
+
+# Main configuration directory
+nginx__config_directory: /etc/nginx
+
+# main configuration file
+nginx__config_file: '{{ nginx__config_directory }}/nginx.conf'
+
+# Command to use for template validation
+nginx__configuration_validator: /usr/bin/env nginx -t -c %s
+
+
+### MONITORING CONFIGURATION
+# ---------------------------------------
+# If true,
+# load status module and create localhost available vhost to serve mod status
+nginx__enable_monitoring_vhost: '{{ nginx__monitoring is defined }}'
+
+# Url endpoint on which to serve server status
+nginx__monitoring_url: /server-status
+
+# Port on which to serve server status
+nginx__monitoring_port: 8080
+
+# Monitoring virtual host definition
+nginx__monitoring_virtual_hosts:
+  999-monitoring:
+    listen_ip:
+      - address: 127.0.0.1
+        port: '{{ nginx__monitoring_port }}'
+    server_name: _
+    directives:
+      - deny: all
+      - satisfy: any
+      - extra_parameters:
+          - keepalive_timeout 0
+    sections:
+      - type: location
+        path: '{{ nginx__monitoring_url }}'
+        modifier: '='
+        directives:
+          - access_log: false
+          - allow:
+              - 127.0.0.1
+              - '::1'
+          - stub_status:
+
+
+### GENERAL CONFIGURATION
+# ---------------------------------------
+
+# Directory which contains all ssl sensibles files
+nginx__ssl_directory: '{{ nginx__config_directory }}/ssl'
+
+# This directory contains symbolic links of enabled sites
+nginx__available_sites_include_directory:
+  '{{ nginx__config_directory }}/sites-available'
+# This directory contains configuration of available sites
+nginx__enabled_sites_include_directory:
+  '{{ nginx__config_directory }}/sites-enabled'
+
+# Directory which contains sites logs
+nginx__logs_directory: /var/log/nginx
+
+# This file contains mime types mapping
+nginx__mime_types_file: '{{ nginx__config_directory }}/mime.types'
+
+# Mapping of mime types and file extensions
+nginx__mime_types_map: '{{ nginx__mime_types_map_default
+  |union(nginx__mime_types_map_additionnals) }}'
+
+# Additionnal mime type mappings
+nginx__mime_types_map_additionnals: []
+
+# Defines the number of worker processes.
+# The optimal value depends on many factors including the number of CPU cores
+nginx__worker_processes: auto
+
+## Events section
+# Sets the maximum number of simultaneous connections that
+# can be opened by a worker process.
+nginx__worker_connections: 512
+
+# If multi_accept is enabled, a worker process will accept multiple
+# new connection at a time
+nginx__multi_accept: true
+
+## Basic Settings
+# Sets the size of the types hash tables
+nginx__types_hash_bucket_size: 64
+nginx__types_hash_max_size: 1024
+
+# Sets the size of variables hash table
+nginx__variables_hash_bucket_size: 64
+nginx__variables_hash_max_size: 1024
+
+# Sets the size of server names hash tables.
+# nginx__server_names_hash_bucket_size:
+nginx__server_names_hash_max_size: 512
+
+# Enables or disables emitting nginx version on error pages and
+# in the “Server” response header
+nginx__server_tokens: true
+
+# Defines the default MIME type of a response
+nginx__default_type: application/octet-stream
+
+# If disabled, redirects issued by nginx will be relative
+nginx__absolute_redirect: true
+
+# Enables or disables the use of the primary server name, specified by
+# the server_name directive, in absolute redirects issued by nginx
+nginx__server_name_in_redirect: false
+
+# Enables or disables specifying the port in absolute redirects issued by nginx
+nginx__port_in_redirect: true
+
+
+## Network Settings
+# Configures name servers used to resolve names of upstream servers
+# into addresses
+nginx__resolver: []
+
+# Enable or not IPv6 looking up
+nginx__resolver_ipv6_enabled: true
+
+# Nginx caches answers using the TTL value of a response
+nginx__resolver_valid: 5m
+
+# Sets a timeout for name resolution
+nginx__resolver_timeout: 5s
+
+# Enables or disables the use of sendfile()
+nginx__sendfile: true
+
+# Enables or disables the use of the TCP_CORK socket option on Linux.
+nginx__tcp_nopush: true
+
+# Enables or disables the use of the TCP_NODELAY option
+nginx__tcp_nodelay: true
+
+# Disables keep-alive connections with misbehaving browsers
+nginx__keepalive_disable: msie6
+
+# Sets the maximum number of requests that can be served through one keep-alive
+# connection
+nginx__keepalive_requests: 100
+
+# This set a timeout during which a keep-alive client connection will stay open
+# on the server side. The zero value disables keep-alive client connections
+nginx__keepalive_timeout: 75s
+
+# This set a value in the “Keep-Alive: timeout=time” response header field
+nginx__keepalive_timeout_header: '{{ nginx__keepalive_timeout }}'
+
+# Specifies log format
+nginx__log_format:
+  main:
+    format: >-
+      $remote_addr - $remote_user [$time_local] "$request"
+      $status $body_bytes_sent "$http_referer"
+      "$http_user_agent" "$http_x_forwarded_for"
+
+
+## SSL Settings
+# Enable SSL globally (for all virtual hosts)
+nginx__ssl: false
+
+# Specifies that server ciphers should be preferred over client ciphers
+nginx__ssl_prefer_server_ciphers: true
+
+# Enables the specified protocols
+nginx__ssl_protocols:
+  - TLSv1
+  - TLSv1.1
+  - TLSv1.2
+
+# Sets the size of the buffer used for sending data
+nginx__ssl_buffer_size: 16k
+
+# Sets the types and sizes of caches that store session parameters.
+nginx__ssl_session_cache: none
+
+# Specifies a time during which a client may reuse the session parameters.
+nginx__ssl_session_timeout: 5m
+
+# Sets a file with the secret key used to encrypt and decrypt
+#  TLS session tickets
+nginx__ssl_session_ticket_key: '{{ nginx__ssl_directory }}/tickets.key'
+
+# Set the size of the session ticket key, default is set according to the
+# installed nginx version
+# See url below to get more information on this option behaviour
+# http://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_session_ticket_key
+nginx__ssl_session_ticket_key_length:
+  "{{ (_nginx__version is version_compare('1.11.8', '>'))
+  |ternary(80, 48) }}"
+
+# Enables or disables session resumption through TLS session tickets
+nginx__ssl_session_tickets: true
+
+# Enables or disables stapling of OCSP responses by the server
+nginx__ssl_stapling: false
+
+# When set, the stapled OCSP response will be taken from the specified file
+# instead of querying the OCSP responder specified in the server certificate.
+# nginx__ssl_stapling_file:
+
+# Enables or disables verification of OCSP responses by the server.
+nginx__ssl_stapling_verify: false
+
+# Specifies the enabled ciphers
+nginx__ssl_ciphers: '{{ nginx__ssl_ciphers_default }}'
+
+# Specifies a file with DH parameters for DHE ciphers.
+nginx__ssl_dhparam: '{{ nginx__ssl_directory }}/dhparams.pem'
+
+# Specify length of DH parameters file
+nginx__ssl_dhparam_length: 2048
+
+# Specifies a curve for ECDHE ciphers
+nginx__ssl_ecdh_curve: "{{ (_nginx__version is version_compare('1.11.0', '>'))
+  |ternary('auto', 'prime256v1') }}"
+
+
+## Gzip Settings
+# Enable Gzip globally
+nginx__gzip: true
+
+# Disables gzipping of responses for requests with "User-Agent" header
+# fields matching any of the specified regular expressions.
+nginx__gzip_disable:
+  - msie6
+
+# Sets a gzip compression level of a response
+nginx__gzip_comp_level: 1
+
+# Sets the minimum HTTP version of a request required to compress a response.
+nginx__gzip_http_version: 1.1
+
+# Sets the minimum length of a response that will be gzipped.
+# The length is determined only from the "Content-Length" response
+# header field
+nginx__gzip_min_length: 20
+
+# Enables gzipping of responses for the specified MIME types
+# text/html is always implied
+nginx__gzip_types: []
+
+# Enables or disables inserting the “Vary: Accept-Encoding” response header
+# field if the directives gzip, gzip_static, or gunzip are active.
+nginx__gzip_vary: true
+
+# Enables or disables gzipping of responses for proxied requests
+# depending on the request and response.
+nginx__gzip_proxied: 'off'
+
+# Sets the number and size of buffers used to compress a response
+# nginx__gzip_buffers: 16 8k
+
+
+## Nginx vhost
+# If true, all virtual hosts that are not in apache2__virtual_hosts
+# will be removed
+nginx__purge_virtual_hosts: true
+
+# This variable is intended to be used in Ansible’s global inventory.
+nginx__global_virtual_hosts: {}
+
+# This variable is intended to be used in a host inventory group of Ansible
+# (only one host group is supported).
+nginx__group_virtual_hosts: {}
+
+# This variable is intended to be used in the inventory of hosts.
+nginx__host_virtual_hosts: {}
+
+# Combned vhosts dicts
+nginx__virtual_hosts: '{{ nginx__global_virtual_hosts
+    |combine(nginx__group_virtual_hosts)
+    |combine(nginx__host_virtual_hosts)
+    |combine(
+      nginx__monitoring_virtual_hosts if nginx__enable_monitoring_vhost
+      else {}
+    )
+  }}'
+
+# Default list of secure ciphers
+nginx__ssl_ciphers_default:
+  - ECDHE-RSA-AES128-GCM-SHA256
+  - ECDHE-ECDSA-AES128-GCM-SHA256
+  - ECDHE-RSA-AES256-GCM-SHA384
+  - ECDHE-ECDSA-AES256-GCM-SHA384
+  - DHE-RSA-AES128-GCM-SHA256
+  - DHE-DSS-AES128-GCM-SHA256
+  - kEDH+AESGCM
+  - ECDHE-RSA-AES128-SHA256
+  - ECDHE-ECDSA-AES128-SHA256
+  - ECDHE-RSA-AES128-SHA
+  - ECDHE-ECDSA-AES128-SHA
+  - ECDHE-RSA-AES256-SHA384
+  - ECDHE-ECDSA-AES256-SHA384
+  - ECDHE-RSA-AES256-SHA
+  - ECDHE-ECDSA-AES256-SHA
+  - DHE-RSA-AES128-SHA256
+  - DHE-RSA-AES128-SHA
+  - DHE-DSS-AES128-SHA256
+  - DHE-RSA-AES256-SHA256
+  - DHE-DSS-AES256-SHA
+  - DHE-RSA-AES256-SHA
+  - AES128-GCM-SHA256
+  - AES256-GCM-SHA384
+  - AES128-SHA256
+  - AES256-SHA256
+  - AES128-SHA
+  - AES256-SHA
+  - AES
+  - CAMELLIA
+  - DES-CBC3-SHA
+  - '!aNULL'
+  - '!eNULL'
+  - '!EXPORT'
+  - '!DES'
+  - '!RC4'
+  - '!MD5'
+  - '!PSK'
+  - '!aECDH'
+  - '!EDH-DSS-DES-CBC3-SHA'
+  - '!EDH-RSA-DES-CBC3-SHA'
+  - '!KRB5-DES-CBC3-SHA'
+
+# Default mapping of mime types
+nginx__mime_types_map_default:
+  - audio/midi: mid midi kar
+  - audio/mpeg: mp3
+  - audio/ogg: ogg
+  - audio/x-m4a: m4a
+  - audio/x-realaudio: ra
+
+  - application/atom+xml: atom
+  - application/javascript: js
+  - application/font-woff: woff
+  - application/java-archive: jar war ear
+  - application/json: json
+  - application/mac-binhex40: hqx
+  - application/msword: doc
+  - application/pdf: pdf
+  - application/postscript: ps eps ai
+  - application/rss+xml: rss
+  - application/rtf: rtf
+  - application/vnd.apple.mpegurl: m3u8
+  - application/vnd.ms-excel: xls
+  - application/vnd.ms-fontobject: eot
+  - application/vnd.ms-powerpoint: ppt
+  - application/vnd.wap.wmlc: wmlc
+  - application/vnd.google-earth.kml+xml: kml
+  - application/vnd.google-earth.kmz: kmz
+  - application/x-7z-compressed: 7z
+  - application/x-cocoa: cco
+  - application/x-java-archive-diff: jardiff
+  - application/x-java-jnlp-file: jnlp
+  - application/x-makeself: run
+  - application/x-perl: pl pm
+  - application/x-pilot: prc pdb
+  - application/x-rar-compressed: rar
+  - application/x-redhat-package-manager: rpm
+  - application/x-sea: sea
+  - application/x-shockwave-flash: swf
+  - application/x-stuffit: sit
+  - application/x-tcl: tcl tk
+  - application/x-x509-ca-cert: der pem crt
+  - application/x-xpinstall: xpi
+  - application/xhtml+xml: xhtml
+  - application/xspf+xml: xspf
+  - application/zip: zip
+
+  - application/octet-stream: bin exe dll
+  - application/octet-stream: deb
+  - application/octet-stream: dmg
+  - application/octet-stream: iso img
+  - application/octet-stream: msi msp msm
+
+  - application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+      docx
+  - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet: xlsx
+  - application/vnd.openxmlformats-officedocument.presentationml.presentation:
+      pptx
+
+  - image/gif: gif
+  - image/jpeg: jpeg jpg
+  - image/png: png
+  - image/svg+xml: svg svgz
+  - image/tiff: tif tiff
+  - image/vnd.wap.wbmp: wbmp
+  - image/x-icon: ico
+  - image/x-jng: jng
+  - image/x-ms-bmp: bmp
+  - image/webp: webp
+  - text/css: css
+  - text/html: html htm shtml
+  - text/mathml: mml
+  - text/plain: txt
+  - text/xml: xml
+  - text/vnd.sun.j2me.app-descriptor: jad
+  - text/vnd.wap.wml: wml
+  - text/x-component: htc
+
+  - video/3gpp: 3gpp 3gp
+  - video/mp2t: ts
+  - video/mp4: mp4
+  - video/mpeg: mpeg mpg
+  - video/quicktime: mov
+  - video/webm: webm
+  - video/x-flv: flv
+  - video/x-m4v: m4v
+  - video/x-mng: mng
+  - video/x-ms-asf: asx asf
+  - video/x-ms-wmv: wmv
+  - video/x-msvideo: avi

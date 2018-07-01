@@ -1,0 +1,11 @@
+#
+# {{ ansible_managed }}
+#
+
+types {
+{% for mapping in nginx__mime_types_map %}
+{%   for mime_type, extensions in mapping|dictsort %}
+  {{ mime_type }} {{ extensions if extensions is string else extensions|join(' ') }};
+{%   endfor %}
+{% endfor %}
+}

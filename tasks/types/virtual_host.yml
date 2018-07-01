@@ -1,0 +1,80 @@
+---
+
+- name: Check virtualhost prerequisites
+  assert:
+    that:
+      - nginx__virtualhost is defined
+      - nginx__virtualhost.name is defined
+      - nginx__virtualhost.server_name is defined
+    msg: >
+      nginx__virtualhost must be defined with specifications and
+      nginx__virtualhost.name must contains the name of the file
+  tags: ['always']
+
+- name: Init some value
+  set_fact:
+    _nginx__available_sites_include_directory:
+      "{{ nginx__available_sites_include_directory
+          |d(nginx__config_directory
+            |d('/etc/nginx')~'/sites-available')
+      }}"
+    _nginx__enabled_sites_include_directory:
+      "{{ nginx__enabled_sites_include_directory
+          |d(nginx__config_directory
+            |d('/etc/nginx')~'/sites-enabled')
+      }}"
+  tags: ['always']
+
+- name: Compute virtualhost final path
+  set_fact:
+    _nginx__virtualhost_path:
+      "{{ _nginx__available_sites_include_directory }}/\
+      {{ nginx__virtualhost.name|replace(' ', '_') }}.conf"
+  tags: ['always']
+
+# Ensure required folder before the full nginx role is applied
+
+- name: Ensure virtualhosts directories exists
+  file:
+    path: '{{ item }}'
+    state: directory
+  with_items:
+    - '{{ _nginx__available_sites_include_directory }}'
+    - '{{ _nginx__enabled_sites_include_directory }}'
+  notify: ['restart-nginx']
+  tags: ['nginx', 'nginx-configure', 'nginx-virtualhost']
+
+### virtual host template
+
+- name: Test if virtualhost exists
+  stat:
+    path: '{{ _nginx__virtualhost_path }}'
+  register: _nginx__virtualhost_file_stat
+  tags: ['nginx', 'nginx-configure', 'nginx-virtualhost']
+
+- name: Ensure temporary permissions on virtualhost file
+  file:
+    path: '{{ _nginx__virtualhost_path }}'
+    mode: 0644
+    state: touch
+  when: nginx__virtualhost.state|d('present') == 'present'
+    and not _nginx__virtualhost_file_stat.stat.exists
+  tags: ['nginx', 'nginx-configure', 'nginx-virtualhost']
+
+- name: 'Create Nginx virtual host {{ nginx__virtualhost.name }}'
+  template:
+    src: virtualhost.conf.j2
+    dest: '{{ _nginx__virtualhost_path }}'
+  when: nginx__virtualhost.state|d('present') == 'present'
+  notify: ['reload-nginx']
+  tags: ['nginx', 'nginx-configure', 'nginx-virtualhost']
+
+- name: 'Remove Nginx virtual host {{ nginx__virtualhost.name }} if needed'
+  file:
+    path: '{{ _nginx__virtualhost_path }}'
+    state: absent
+  when: nginx__virtualhost.state|d('present') != 'present'
+  notify: ['reload-nginx']
+  tags: ['nginx', 'nginx-configure', 'nginx-virtualhost']
+
+### Virtual host config

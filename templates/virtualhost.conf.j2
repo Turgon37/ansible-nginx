@@ -1,0 +1,92 @@
+{%- import '_macros.j2' as macros with context -%}
+{#
+ # Produce nginx options for listen directive based on virtualhost settings
+ #
+ # @param vhost_spec : the virtualhost settings mapping
+ # @param listen_spec : optional listen settings mapping
+ # @return string
+ #}
+{%- macro listen_options(vhost_spec, listen_spec={}) -%}
+{% set options = [] %}
+{% if listen_spec.default_server|d(vhost_spec.default_server|d(false))|bool %}
+{%   if macros.version_compare_per_branch('0.8.21', '>')|bool %}
+{%     set _ = options.append('default_server') %}
+{%   else %}
+{%     set _ = options.append('default') %}
+{%   endif %}
+{% endif %}
+{% if macros.version_compare_per_branch('0.7.14', '>')|bool %}
+{%   if listen_spec.ssl|d(vhost_spec.ssl|d(nginx__ssl))|bool %}
+{%     set _ = options.append('ssl') %}
+{%   endif %}
+{% endif %}
+{% if macros.version_compare_per_branch('1.9.5', '>')|bool %}
+{%   if listen_spec.http2|d(vhost_spec.http2|d(false))|bool %}
+{%     set _ = options.append('http2') %}
+{%   endif %}
+{% endif %}
+{{ options|join(' ') }}
+{%- endmacro -%}
+#
+# {{ ansible_managed }}
+#
+{% set vhost = nginx__virtualhost %}
+
+server {
+{% if vhost.listen_ip is not defined and vhost.listen_unix is not defined %}
+    # Default
+    listen {{ 443 if vhost.ssl|d(false)|bool else 80 }} {{ listen_options(vhost) }};
+{% else %}
+{#   treat all ip based listen #}
+{%   if vhost.listen_ip is defined %}
+    # IPs
+{#     simple string declaration using 'ip:port' or simply 'ip' #}
+{%     if vhost.listen_ip is string %}
+    listen {{ vhost.listen_ip }} {{ listen_options(vhost) }};
+{#     list version with advanced settings support #}
+{%     elif vhost.listen_ip is iterable %}
+{%       for listen in vhost.listen_ip %}
+{%         if listen is string %}
+    listen {{ listen }} {{ listen_options(vhost) }};
+{%         elif listen is mapping %}
+    listen {% if listen.address is defined %}{{ listen.address }}:{% endif %}{{ listen.port|d(443 if vhost.ssl|d(false)|bool else 80) }} {{ listen_options(vhost, listen) }};
+{%         endif %}
+{%       endfor %}
+{%     endif %}
+{%   endif %}
+{#   treat all unix based listen #}
+{%   if vhost.listen_unix is defined %}
+    # Unix
+{#     simple string declaration using 'path' #}
+{%     if vhost.listen_unix is string %}
+    listen {{ vhost.listen_unix }} {{ listen_options(vhost) }};
+{#     list version with advanced settings support #}
+{%     elif vhost.listen_unix is iterable %}
+{%       for listen in vhost.listen_unix %}
+{%         if listen is string %}
+    listen {{ listen }} {{ listen_options(vhost) }};
+{%         elif listen is mapping %}
+    listen {{ listen.path }} {{ listen_options(vhost, listen) }};
+{%         endif %}
+{%       endfor %}
+{%     endif %}
+{%   endif %}
+{% endif %}
+
+    server_name{% if vhost.server_name is string %} "{{ vhost.server_name }}"{% else %}{% for name in vhost.server_name %} "{{ name }}"{% endfor %}{% endif %};
+
+{% if vhost.ssl_certificate is defined %}
+    ssl_certificate {{ vhost.ssl_certificate }};
+{% endif %}
+{% if vhost.ssl_certificate_key is defined %}
+    ssl_certificate_key {{ vhost.ssl_certificate_key }};
+{% endif %}
+
+{% for dir in vhost.directives|d([]) %}
+{{   macros.directive(dir)|indent(4, True) }}
+{% endfor %}
+
+{% for sect in vhost.sections|d([]) %}
+{{   macros.section(sect)|indent(4, True) }}
+{% endfor %}
+}

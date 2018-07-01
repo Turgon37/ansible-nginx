@@ -1,0 +1,132 @@
+{%- import '_macros.j2' as macros with context -%}
+#
+# {{ ansible_managed }}
+#
+user {{ nginx__service_user }} {{ nginx__service_group }};
+pid {{ nginx__pidfile }};
+
+{% if macros.version_compare_per_branch('1.2.5', '1.3.8', '<')|bool and nginx__worker_processes == 'auto' %}
+worker_processes {{ ansible_processor_vcpus }};
+{% else %}
+worker_processes {{ nginx__worker_processes }};
+{% endif %}
+
+events {
+    worker_connections {{ nginx__worker_connections }};
+    multi_accept {{ macros.bool(nginx__multi_accept) }};
+}
+
+http {
+    ##
+    # Basic Settings
+    ##
+    types_hash_bucket_size {{ nginx__types_hash_bucket_size }};
+    types_hash_max_size {{ nginx__types_hash_max_size }};
+    variables_hash_bucket_size {{ nginx__variables_hash_bucket_size }};
+    variables_hash_max_size {{ nginx__variables_hash_max_size }};
+{% if nginx__server_names_hash_bucket_size is defined %}
+    server_names_hash_bucket_size {{ nginx__server_names_hash_bucket_size }};
+{% endif %}
+    server_names_hash_max_size {{ nginx__server_names_hash_max_size }};
+    server_tokens {{ macros.stringOrBool(nginx__server_tokens) }};
+
+{% if macros.version_compare_per_branch('1.11.8', '>')|bool %}
+    absolute_redirect {{ nginx__absolute_redirect }};
+{% endif %}
+    server_name_in_redirect {{ macros.bool(nginx__server_name_in_redirect) }};
+    port_in_redirect {{ macros.bool(nginx__port_in_redirect) }};
+
+    default_type {{ nginx__default_type }};
+    include {{ nginx__mime_types_file}};
+
+    ##
+    # Network Settings
+    ##
+{% if nginx__resolver is defined and nginx__resolver|length %}
+{%   if macros.version_compare_per_branch('1.1.7', '<')|bool %}
+    resolver {{ nginx__resolver[0] }};
+{%   else %}
+    resolver {{ nginx__resolver|join(' ') }}{% if macros.version_compare_per_branch('1.5.8', '>')|bool %} ipv6={{ macros.bool(nginx__resolver_ipv6_enabled) }}{% endif %}{% if macros.version_compare_per_branch('1.1.9', '>')|bool %} valid={{ nginx__resolver_valid }}{% endif %};
+{%   endif %}
+    resolver_timeout {{ nginx__resolver_timeout }};
+{% endif %}
+    sendfile {{ macros.bool(nginx__sendfile) }};
+{% if nginx__sendfile|bool %}
+    tcp_nopush {{ macros.bool(nginx__tcp_nopush) }};
+{% endif %}
+    tcp_nodelay {{ macros.bool(nginx__tcp_nodelay) }};
+    keepalive_disable {{ nginx__keepalive_disable }};
+{% if macros.version_compare_per_branch('0.8.0', '<')|bool %}
+    keepalive_requests {{ nginx__keepalive_requests|int }};
+{% endif %}
+    {{ macros.directive({'keepalive_timeout':{
+                            'timeout': nginx__keepalive_timeout,
+                            'timeout_header': nginx__keepalive_timeout_header }}) }}
+
+    ##
+    # Logs Settings
+    ##
+{% for name, format in nginx__log_format|dictsort %}
+{%   if format is mapping %}
+    log_format {{ name }}{% if macros.version_compare_per_branch('1.11.8', '>')|bool %} escape={{ format.escape|d('default') }}{% endif %} '{{ format.format }}';
+{%   else %}
+    log_format {{ name }}{% if macros.version_compare_per_branch('1.11.8', '>')|bool %} escape=default{% endif %} '{{ format }}';
+{%   endif %}
+{% endfor %}
+
+    ##
+    # SSL Settings
+    ##
+{% if macros.version_compare_per_branch('1.15.0', '<')|bool %}
+    ssl {{ macros.bool(nginx__ssl) }};
+{% endif %}
+    ssl_prefer_server_ciphers {{ macros.bool(nginx__ssl_prefer_server_ciphers) }};
+    ssl_protocols {{ nginx__ssl_protocols|join(' ') }};
+    ssl_ciphers "{{ nginx__ssl_ciphers|join(':') }}";
+{% if macros.version_compare_per_branch('1.0.6', '1.1.0', '>')|bool %}
+    ssl_ecdh_curve {{ nginx__ssl_ecdh_curve }};
+{% endif %}
+{% if macros.version_compare_per_branch('0.7.2', '>')|bool %}
+    ssl_dhparam {{ nginx__ssl_dhparam }};
+{% endif %}
+    ssl_session_cache {{ nginx__ssl_session_cache }};
+{% if macros.version_compare_per_branch('1.5.9', '>')|bool %}
+    ssl_buffer_size {{ nginx__ssl_buffer_size }};
+    ssl_session_tickets {{ macros.bool(nginx__ssl_session_tickets) }};
+{% endif %}
+{% if macros.version_compare_per_branch('1.5.7', '>')|bool %}
+    ssl_session_ticket_key {{ nginx__ssl_session_ticket_key }};
+{% endif %}
+    ssl_session_timeout {{ nginx__ssl_session_timeout }};
+{% if macros.version_compare_per_branch('1.3.7', '>')|bool %}
+    ssl_stapling {{ macros.bool(nginx__ssl_stapling) }};
+{%   if nginx__ssl_stapling|bool and nginx__ssl_stapling_file is defined %}
+    ssl_stapling_file {{ nginx__ssl_stapling_file }};
+{%   endif %}
+{% endif %}
+    ssl_stapling_verify {{ macros.bool(nginx__ssl_stapling_verify) }};
+
+    ##
+    # Gzip Settings
+    ##
+    gzip {{ macros.bool(nginx__gzip) }};
+{% if macros.version_compare_per_branch('0.6.23', '>')|bool %}
+    gzip_disable{% if nginx__gzip_disable is string %} "{{ nginx__gzip_disable }}"{% else %}{% for regex in nginx__gzip_disable %} "{{ regex }}"{% endfor %}{% endif %};
+{% endif %}
+{% if nginx__gzip_types|length %}
+    gzip_types {{ nginx__gzip_types|join(' ') }};
+{% endif %}
+    gzip_vary {{ macros.bool(nginx__gzip_vary) }};
+    gzip_proxied {{ nginx__gzip_proxied if nginx__gzip_proxied is string else nginx__gzip_proxied|join(' ') }};
+    gzip_comp_level {{ nginx__gzip_comp_level|int }};
+    gzip_http_version {{ nginx__gzip_http_version }};
+    gzip_min_length {{ nginx__gzip_min_length}};
+{% if nginx__gzip_buffers is defined %}
+    gzip_buffers {{ nginx__gzip_buffers }};
+{% endif %}
+
+    ##
+    # Virtual Host Configs
+    ##
+    include {{ nginx__enabled_sites_include_directory }}/*.conf;
+}
