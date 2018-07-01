@@ -8,7 +8,7 @@ import re
 import sys
 
 
-## RETRIEVE INFORMATIONS
+# RETRIEVE INFORMATIONS
 if __name__ == '__main__':
     # Create parser
     parser = argparse.ArgumentParser(description='Command line utility to query stats from nginx status virtual host')
@@ -72,6 +72,6 @@ if __name__ == '__main__':
         content['writing'] = int(match.group(2))
         content['waiting'] = int(match.group(3))
 
-    ## OUTPUT
+    # OUTPUT
     print(json.dumps(content))
     sys.exit(0)
