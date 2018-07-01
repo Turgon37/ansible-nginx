@@ -59,7 +59,9 @@ http {
 {% if macros.version_compare_per_branch('0.8.0', '<')|bool %}
     keepalive_requests {{ nginx__keepalive_requests|int }};
 {% endif %}
-    keepalive_timeout {{ nginx__keepalive_timeout }} {{ nginx__keepalive_timeout_header }};
+    {{ macros.directive({'keepalive_timeout':{
+                            'timeout': nginx__keepalive_timeout,
+                            'timeout_header': nginx__keepalive_timeout_header }}) }}
 
     ##
     # Logs Settings

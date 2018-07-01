@@ -62,6 +62,26 @@
   with_items:
     - '{{ nginx__logs_directory }}'
 
+- name: Create custom scripts directory
+  file:
+    path: '{{ item }}'
+    owner: root
+    group: root
+    mode: 0755
+    state: directory
+  with_items:
+    - '{{ nginx__custom_scripts_directory }}'
+
+- name: Install nginx custom scripts
+  copy:
+    src: 'files/{{ item }}'
+    dest: '{{ nginx__custom_scripts_directory }}/{{ item }}'
+    owner: root
+    group: root
+    mode: 0755
+  with_items:
+    - nginx-server-status.py
+
 # ssl dh pa$rameters
 
 - name: Check presence of DH parameters

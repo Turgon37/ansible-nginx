@@ -4,6 +4,9 @@
 # Enable facts deploiement
 nginx__facts: true
 
+# Choose the monitoring backend to configure (if available)
+# nginx__monitoring:
+
 
 ### INSTALL CONFIGURATION
 # Choose the source of nginx repository
@@ -52,6 +55,9 @@ nginx__provider_repositories:
 nginx__packages_names:
   - nginx
 
+# Where to place zabbix custom scripts
+nginx__custom_scripts_directory: /opt/nginx-scripts
+
 
 ### SERVICE CONFIGURATION
 # ---------------------------------------
@@ -81,6 +87,7 @@ nginx__pidfile: /var/run/nginx.pid
 
 # Main configuration directory
 nginx__config_directory: /etc/nginx
+
 # main configuration file
 nginx__config_file: '{{ nginx__config_directory }}/nginx.conf'
 
@@ -93,6 +100,35 @@ nginx__configuration_validator: /usr/bin/env nginx -t -c %s
 # If true,
 # load status module and create localhost available vhost to serve mod status
 nginx__enable_monitoring_vhost: '{{ nginx__monitoring is defined }}'
+
+# Url endpoint on which to serve server status
+nginx__monitoring_url: /server-status
+
+# Port on which to serve server status
+nginx__monitoring_port: 8080
+
+# Monitoring virtual host definition
+nginx__monitoring_virtual_hosts:
+  999-monitoring:
+    listen_ip:
+      - address: 127.0.0.1
+        port: '{{ nginx__monitoring_port }}'
+    server_name: _
+    directives:
+      - deny: all
+      - satisfy: any
+      - extra_parameters:
+          - keepalive_timeout 0
+    sections:
+      - type: location
+        path: '{{ nginx__monitoring_url }}'
+        modifier: '='
+        directives:
+          - access_log: false
+          - allow:
+              - 127.0.0.1
+              - '::1'
+          - stub_status:
 
 
 ### GENERAL CONFIGURATION

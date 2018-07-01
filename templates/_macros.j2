@@ -121,7 +121,7 @@ allow {% if value in ['unix:', 'all'] %}{{ value }}{% else %}"{{ value }}"{% end
 {%-       else -%}
 {%-         for item in value|list -%}
 allow {% if item in ['unix:', 'all'] %}{{ item }}{% else %}"{{ item }}"{% endif %};
-{%-         endfor -%}
+{%          endfor -%}
 {%-       endif -%}
 {%-     elif name == 'auth_basic' -%}
 auth_basic {% if value == 'off' %}off{% else %}"{{ value }}"{% endif %};
@@ -133,10 +133,16 @@ deny {% if value in ['unix:', 'all'] %}{{ value }}{% else %}"{{ value }}"{% endi
 {%-       else -%}
 {%-         for item in value|list -%}
 deny {% if item in ['unix:', 'all'] %}{{ item }}{% else %}"{{ item }}"{% endif %};
-{%-         endfor -%}
+{%          endfor -%}
 {%-       endif -%}
 {%-     elif name == 'index' -%}
 index {{ value }};
+{%-     elif name == 'keepalive_timeout' -%}
+{%-       if value is mapping -%}
+keepalive_timeout {{ value.timeout }}{% if value.timeout_header is defined %} {{ value.timeout_header }}{% endif %};
+{%-       else -%}
+keepalive_timeout {{ value }};
+{%-       endif -%}
 {%-     elif name == 'log_not_found' -%}
 log_not_found {{ bool(value) }};
 {%-     elif name == 'return' -%}
@@ -149,6 +155,8 @@ return {{ value }};
 root {{ value }};
 {%-     elif name == 'satisfy' -%}
 satisfy {{ value }};
+{%-     elif name == 'stub_status' -%}
+stub_status{% if version_compare_per_branch('1.7.5', '<')|bool %} on{% endif %};
 {%-     elif name == 'try_files' -%}
 {%-       if value is string %}
 try_files {{ value }};
