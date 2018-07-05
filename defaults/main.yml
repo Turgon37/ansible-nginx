@@ -102,7 +102,7 @@ nginx__configuration_validator: /usr/bin/env nginx -t -c %s
 nginx__enable_monitoring_vhost: '{{ nginx__monitoring is defined }}'
 
 # Url endpoint on which to serve server status
-nginx__monitoring_url: /server-status
+nginx__monitoring_url: /nginx-status
 
 # Port on which to serve server status
 nginx__monitoring_port: 8080
