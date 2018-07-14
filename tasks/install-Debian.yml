@@ -7,17 +7,17 @@
     state: "{{ item.state|d('present') }}"
   with_items: '{{ nginx__provider_gpg_keys[ansible_distribution] }}'
   register: _nginx__apt_key
-  ignore_errors: '{{ httpproxy is defined }}'
+  ignore_errors: '{{ http_proxy is defined }}'
   tags: ['nginx', 'nginx-install']
 
 - name: Add repository APT key using http proxy
   command: >
     apt-key adv
-    --keyserver-options 'http-proxy={{ httpproxy }}'
+    --keyserver-options 'http-proxy={{ http_proxy }}'
     --keyserver '{{ item.keyserver }}'
     --recv-keys '{{ item.id }}'
   with_items: '{{ nginx__provider_gpg_keys[ansible_distribution] }}'
-  when: _nginx__apt_key is failed and httpproxy is defined
+  when: _nginx__apt_key is failed and http_proxy is defined
   tags: ['nginx', 'nginx-install']
 
 - name: Add nginx repository for Debian
