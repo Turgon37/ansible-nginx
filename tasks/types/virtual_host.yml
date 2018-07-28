@@ -7,8 +7,9 @@
       - nginx__virtualhost.name is defined
       - nginx__virtualhost.server_name is defined
     msg: >
-      nginx__virtualhost must be defined with specifications and
+      nginx__virtualhost must be defined with specifications,
       nginx__virtualhost.name must contains the name of the file
+      nginx__virtualhost.server_name must be set
   tags: ['always']
 
 - name: Init some value
