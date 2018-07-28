@@ -1,0 +1,5 @@
+---
+
+# The name of the nginx package
+nginx__packages_names:
+  - "nginx{{ (nginx__version != 'latest')|ternary('='~nginx__version, '') }}"

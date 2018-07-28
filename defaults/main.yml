@@ -9,6 +9,9 @@ nginx__facts: true
 
 
 ### INSTALL CONFIGURATION
+# The nginx version to install (as the ones available in repositories)
+nginx__version: latest
+
 # Choose the source of nginx repository
 # in os, nginx
 nginx__packages_source: os
@@ -51,11 +54,7 @@ nginx__provider_repositories:
   Suse:
     - '{{ nginx__provider_base_url }}/sles/12'
 
-# The name of the nginx package
-nginx__packages_names:
-  - nginx
-
-# Where to place zabbix custom scripts
+# Where to place custom scripts
 nginx__custom_scripts_directory: /opt/nginx-scripts
 
 
@@ -83,7 +82,7 @@ nginx__systemd_override_options_directory:
   '/etc/systemd/system/{{ nginx__service_name }}.service.d'
 
 # Location of the nginx pidfile
-nginx__pidfile: /var/run/nginx.pid
+nginx__service_pidfile: /var/run/nginx.pid
 
 # Main configuration directory
 nginx__config_directory: /etc/nginx

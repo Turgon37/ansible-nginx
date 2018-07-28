@@ -82,7 +82,7 @@
   with_items:
     - nginx-server-status.py
 
-# ssl dh pa$rameters
+# ssl dh parameters
 
 - name: Check presence of DH parameters
   stat:
