@@ -1,7 +1,7 @@
 # {{ ansible_managed }}
 
 [Service]
-PIDFile={{ nginx___service_pidfile }}
+PIDFile={{ nginx__service_pidfile }}
 
 # Remove must restart stamp file
 ExecStartPre=-/usr/bin/env rm -f {{ nginx__service_restart_stamp_file }}
