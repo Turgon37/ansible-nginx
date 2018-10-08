@@ -21,3 +21,11 @@
     name: '{{ item }}'
     state: present
   with_items: '{{ nginx__packages_names }}'
+  register: _nginx__packages
+
+- name: Stop Nginx to allow full configuration
+  service:
+    name: '{{ nginx__service_name }}'
+    state: stopped
+  when: _nginx__packages is defined
+    and _nginx__packages is changed
