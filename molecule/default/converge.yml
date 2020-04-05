@@ -1,0 +1,8 @@
+---
+- name: Converge
+  hosts: all
+  any_errors_fatal: true
+  tasks:
+    - name: "Include turgon37.cron"
+      include_role:
+        name: ansible-nginx
