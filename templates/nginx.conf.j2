@@ -31,7 +31,7 @@ http {
     server_tokens {{ macros.stringOrBool(nginx__server_tokens) }};
 
 {% if macros.version_compare_per_branch('1.11.8', '>')|bool %}
-    absolute_redirect {{ nginx__absolute_redirect }};
+    absolute_redirect {{ macros.bool(nginx__absolute_redirect) }};
 {% endif %}
     server_name_in_redirect {{ macros.bool(nginx__server_name_in_redirect) }};
     port_in_redirect {{ macros.bool(nginx__port_in_redirect) }};
