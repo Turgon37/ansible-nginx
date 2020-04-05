@@ -9,6 +9,7 @@ nginx__facts: true
 
 
 ### INSTALL CONFIGURATION
+# ---------------------------------------
 # The nginx version to install (as the ones available in repositories)
 nginx__version: latest
 
