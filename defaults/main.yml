@@ -97,8 +97,7 @@ nginx__configuration_validator: /usr/bin/env nginx -t -c %s
 
 ### MONITORING CONFIGURATION
 # ---------------------------------------
-# If true,
-# load status module and create localhost available vhost to serve mod status
+# If true, create localhost available vhost to serve mod status
 nginx__enable_monitoring_vhost: '{{ nginx__monitoring is defined }}'
 
 # Url endpoint on which to serve server status
