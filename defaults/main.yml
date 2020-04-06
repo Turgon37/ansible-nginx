@@ -98,7 +98,7 @@ nginx__configuration_validator: /usr/bin/env nginx -t -c %s
 ### MONITORING CONFIGURATION
 # ---------------------------------------
 # If true, create localhost available vhost to serve mod status
-nginx__enable_monitoring_vhost: '{{ nginx__monitoring is defined }}'
+nginx__monitoring_virtual_hosts_enabled: '{{ nginx__monitoring is defined }}'
 
 # Url endpoint on which to serve server status
 nginx__monitoring_url: /nginx-status
@@ -351,24 +351,26 @@ nginx__gzip_proxied: 'off'
 ## Nginx vhost
 # If true, all virtual hosts that are not in apache2__virtual_hosts
 # will be removed
-nginx__purge_virtual_hosts: true
+nginx__virtual_hosts_purge: true
 
 # This variable is intended to be used in Ansible’s global inventory.
-nginx__global_virtual_hosts: {}
+nginx__virtual_hosts_global: {}
 
 # This variable is intended to be used in a host inventory group of Ansible
 # (only one host group is supported).
-nginx__group_virtual_hosts: {}
+nginx__virtual_hosts_group: {}
 
 # This variable is intended to be used in the inventory of hosts.
-nginx__host_virtual_hosts: {}
+nginx__virtual_hosts_host: {}
 
 # Combned vhosts dicts
-nginx__virtual_hosts: '{{ nginx__global_virtual_hosts
-    |combine(nginx__group_virtual_hosts)
-    |combine(nginx__host_virtual_hosts)
+nginx__virtual_hosts: '{{
+    nginx__virtual_hosts_global
+    |combine(nginx__virtual_hosts_group)
+    |combine(nginx__virtual_hosts_host)
     |combine(
-      nginx__monitoring_virtual_hosts if nginx__enable_monitoring_vhost
+      nginx__monitoring_virtual_hosts
+      if nginx__monitoring_virtual_hosts_enabled
       else {}
     )
   }}'
