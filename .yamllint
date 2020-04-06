@@ -1,4 +1,8 @@
+---
 extends: default
 ignore: |
   .travis.yml
   meta/
+
+rules:
+  line-length: disable
