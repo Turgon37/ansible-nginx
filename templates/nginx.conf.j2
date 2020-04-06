@@ -64,6 +64,8 @@ http {
     ##
     # Logs Settings
     ##
+    {{ macros.directive({'access_log':{'path': 'access.log'}}) }}
+    {{ macros.directive({'error_log':{'path': 'error.log'}}) }}
 {% for name, format in nginx__log_format|dictsort %}
 {%   if format is mapping %}
     log_format {{ name }}{% if macros.version_compare_per_branch('1.11.8', '>')|bool %} escape={{ format.escape|d('default') }}{% endif %} '{{ format.format }}';

@@ -20,6 +20,21 @@
 {%- endmacro -%}
 
 {#
+ # Absolute path or relative to.
+ # Return an absolute path if given, instead return the relative path
+ # joined with given base directory
+ #
+ # @param path : a path to evaluate
+ # @param basedir : the base directory for path that are evaluated to relative
+ # @param exclude : optional list of string that will be returned without changes
+ # @return string
+ #}
+{%- macro path_or_relative(path, basedir, exclude=[]) -%}
+{{ path if path.startswith('/') or path in exclude else basedir~'/'~path }}
+{%- endmacro -%}
+
+
+{#
  # Compare current nginx version againt stable or mainline version
  # using the _nginx__branch fact
  #
@@ -105,7 +120,7 @@ FAIL ### a directive must be a mapping with one key and one value
 {%-     set value = (line.values()|list)[0] -%}
 {%-     if name == 'access_log' -%}
 {%-       if value is mapping %}
-access_log {{ value.path }}{% if value.format is defined %} {{ value.format }}{% endif %}{% if value.buffer_size is defined %} buffer={{ value.buffer_size }}{% endif %}{% if value.gzip_level is defined %} gzip={{ value.gzip_level }}{% endif %}{% if value.flush_time is defined %} flush={{ value.flush_time }}{% endif %}{% if value.condition is defined %} if={{ value.condition }}{% endif %};
+access_log {{ value.path if ':' in value.path else path_or_relative(value.path, nginx__logs_directory) }}{% if value.format is defined %} {{ value.format }}{% endif %}{% if value.buffer_size is defined %} buffer={{ value.buffer_size }}{% endif %}{% if value.gzip_level is defined %} gzip={{ value.gzip_level }}{% endif %}{% if value.flush_time is defined %} flush={{ value.flush_time }}{% endif %}{% if value.condition is defined %} if={{ value.condition }}{% endif %};
 {%-       else -%}
 access_log {% if value == 'off' or value == false %}off{% else %}"{{ value }}"{% endif %};
 {%-       endif -%}
@@ -134,6 +149,12 @@ deny {% if value in ['unix:', 'all'] %}{{ value }}{% else %}"{{ value }}"{% endi
 {%-         for item in value|list -%}
 deny {% if item in ['unix:', 'all'] %}{{ item }}{% else %}"{{ item }}"{% endif %};
 {%          endfor -%}
+{%-       endif -%}
+{%-     elif name == 'error_log' -%}
+{%-       if value is mapping %}
+error_log {{ value.path if ':' in value.path else path_or_relative(value.path, nginx__logs_directory, ['stderr']) }}{% if value.level is defined %} {{ value.level }}{% endif %};
+{%-       else -%}
+error_log "{{ value }}";
 {%-       endif -%}
 {%-     elif name == 'index' -%}
 index {{ value }};
