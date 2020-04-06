@@ -24,8 +24,10 @@
 - name: Setup availables sites
   include_tasks: types/virtual_host.yml
   vars:
-    nginx__virtualhost:
-      "{{ outer_item.value|combine({'name': outer_item.key}) }}"
+    nginx__virtualhost: "{{
+        outer_item.value
+        |combine({'name': outer_item.key})
+      }}"
   with_dict: '{{ nginx__virtual_hosts }}'
   loop_control:
     loop_var: outer_item
