@@ -1,9 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import argparse
 import base64
+import http.client
 import json
-import urllib2
 import re
 import sys
 
@@ -34,22 +34,28 @@ if __name__ == '__main__':
     content = dict(error=None)
 
     # prepare request
-    request = urllib2.Request(url='http://localhost:{port}{url}'.format(**vars(args)))
+    conn = http.client.HTTPConnection("localhost", args.port, timeout=args.timeout)
+    headers = dict()
+    headers['Accept'] = 'text/plain'
+    headers['Connection'] = 'close'
+
     if hasattr(args, 'username') and hasattr(args, 'password'):
         if args.verbose:
             sys.stdout.write('using basic auth')
         base64string = base64.encodestring('{}:{}'.format(args.username, args.password)).strip()
-        request.add_header("Authorization", "Basic {}".format(base64string))
+        headers['Authorization'] = 'Basic {}'.format(base64string)
+
+    conn.request('GET', url=args.url, headers=headers)
 
     # execute query
     try:
-        answer = urllib2.urlopen(request, timeout=args.timeout)
-    except urllib2.HTTPError as e:
-        content['error'] = str(e)
+        answer = conn.getresponse()
+    except urllib2.HTTPError as ex:
+        content['error'] = str(ex)
         print(json.dumps(content))
         sys.exit(1)
-    status = answer.read()
-    answer.close()
+    status = answer.read().decode()
+    conn.close()
 
     # parse status datas
     if args.verbose:
