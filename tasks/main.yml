@@ -28,9 +28,12 @@
   import_tasks: service.yml
   tags: ['nginx', 'nginx-service']
 
-- name: Optionally import monitoring tasks
-  include_tasks: 'monitoring/{{ nginx__monitoring }}.yml'
+- name: Optionally importing monitoring tasks
+  include_tasks: 'monitoring/{{ monitoring_backend }}.yml'
+  with_items: '{{ [nginx__monitoring]|flatten|unique|list }}'
   when: nginx__monitoring is defined
+  loop_control:
+    loop_var: monitoring_backend
   tags: ['nginx', 'nginx-monitoring']
 
 - name: Optionally import facts tasks

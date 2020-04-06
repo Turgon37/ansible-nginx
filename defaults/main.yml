@@ -129,6 +129,13 @@ nginx__monitoring_virtual_hosts:
               - '::1'
           - stub_status:
 
+## Prometheus monitoring
+# Which exporter version do you want
+nginx_exporter__version: 0.6.0
+
+# Extra exporter command line options
+nginx__monitoring_nginx_exporter_extra_cmdline: ''
+
 
 ### GENERAL CONFIGURATION
 # ---------------------------------------
