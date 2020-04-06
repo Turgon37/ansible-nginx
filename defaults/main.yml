@@ -150,8 +150,10 @@ nginx__logs_directory: /var/log/nginx
 nginx__mime_types_file: '{{ nginx__config_directory }}/mime.types'
 
 # Mapping of mime types and file extensions
-nginx__mime_types_map: '{{ nginx__mime_types_map_default
-  |union(nginx__mime_types_map_additionnals) }}'
+nginx__mime_types_map: '{{
+    nginx__mime_types_map_default
+    |union(nginx__mime_types_map_additionnals)
+  }}'
 
 # Additionnal mime type mappings
 nginx__mime_types_map_additionnals: []
@@ -276,9 +278,10 @@ nginx__ssl_session_ticket_key: '{{ nginx__ssl_directory }}/tickets.key'
 # installed nginx version
 # See url below to get more information on this option behaviour
 # http://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_session_ticket_key
-nginx__ssl_session_ticket_key_length:
-  "{{ (_nginx__version is version_compare('1.11.8', '>'))
-  |ternary(80, 48) }}"
+nginx__ssl_session_ticket_key_length: "{{
+    (_nginx__version is version_compare('1.11.8', '>'))
+    |ternary(80, 48)
+  }}"
 
 # Enables or disables session resumption through TLS session tickets
 nginx__ssl_session_tickets: true
@@ -303,8 +306,10 @@ nginx__ssl_dhparam: '{{ nginx__ssl_directory }}/dhparams.pem'
 nginx__ssl_dhparam_length: 2048
 
 # Specifies a curve for ECDHE ciphers
-nginx__ssl_ecdh_curve: "{{ (_nginx__version is version_compare('1.11.0', '>'))
-  |ternary('auto', 'prime256v1') }}"
+nginx__ssl_ecdh_curve: "{{
+    (_nginx__version is version_compare('1.11.0', '>'))
+    |ternary('auto', 'prime256v1')
+  }}"
 
 
 ## Gzip Settings
