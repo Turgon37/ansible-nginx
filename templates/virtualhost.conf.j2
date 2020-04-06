@@ -83,10 +83,10 @@ server {
 {% endif %}
 
 {% for dir in vhost.directives|d([]) %}
-{{   macros.directive(dir)|indent(4, True) }}
+{{   macros.directive(dir)|indent(4, true) }}
 {% endfor %}
 
 {% for sect in vhost.sections|d([]) %}
-{{   macros.section(sect)|indent(4, True) }}
+{{   macros.section(sect)|indent(4, true) }}
 {% endfor %}
 }
