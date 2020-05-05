@@ -3,6 +3,6 @@
   hosts: all
   any_errors_fatal: true
   tasks:
-    - name: "Include turgon37.cron"
+    - name: "Include turgon37.nginx"
       include_role:
         name: ansible-nginx
