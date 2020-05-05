@@ -90,6 +90,7 @@
   register: _nginx__dhparams_stat
 
 - name: Check size of current DH parameters
+  # noqa 306
   shell: >
     openssl dhparam
     -in {{ nginx__ssl_dhparam }}
