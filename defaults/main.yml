@@ -83,7 +83,7 @@ nginx__systemd_override_options_directory:
   '/etc/systemd/system/{{ nginx__service_name }}.service.d'
 
 # Location of the nginx pidfile
-nginx__service_pidfile: /var/run/nginx.pid
+nginx__service_pidfile: /run/nginx.pid
 
 # Main configuration directory
 nginx__config_directory: /etc/nginx
