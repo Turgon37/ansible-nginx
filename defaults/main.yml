@@ -144,11 +144,9 @@ nginx__monitoring_nginx_exporter_extra_cmdline: ''
 nginx__ssl_directory: '{{ nginx__config_directory }}/ssl'
 
 # This directory contains symbolic links of enabled sites
-nginx__available_sites_include_directory:
-  '{{ nginx__config_directory }}/sites-available'
+nginx__available_sites_include_directory: '{{ nginx__config_directory }}/sites-available'
 # This directory contains configuration of available sites
-nginx__enabled_sites_include_directory:
-  '{{ nginx__config_directory }}/sites-enabled'
+nginx__enabled_sites_include_directory: '{{ nginx__config_directory }}/sites-enabled'
 
 # Directory which contains sites logs
 nginx__logs_directory: /var/log/nginx
@@ -209,7 +207,22 @@ nginx__server_name_in_redirect: false
 nginx__port_in_redirect: true
 
 
-## Network Settings
+### LOGS CONFIGURATION
+# ---------------------------------------
+# Directory which contains sites logs
+nginx__logs_directory: /var/log/nginx
+
+# Specifies log format
+nginx__log_formats:
+  main:
+    format: >-
+      $remote_addr - $remote_user [$time_local] "$request"
+      $status $body_bytes_sent "$http_referer"
+      "$http_user_agent" "$http_x_forwarded_for"
+
+
+### NETWORK CONFIGURATION
+# ---------------------------------------
 # Configures name servers used to resolve names of upstream servers
 # into addresses
 nginx__resolver: []
@@ -246,16 +259,9 @@ nginx__keepalive_timeout: 75s
 # This set a value in the “Keep-Alive: timeout=time” response header field
 nginx__keepalive_timeout_header: '{{ nginx__keepalive_timeout }}'
 
-# Specifies log format
-nginx__log_format:
-  main:
-    format: >-
-      $remote_addr - $remote_user [$time_local] "$request"
-      $status $body_bytes_sent "$http_referer"
-      "$http_user_agent" "$http_x_forwarded_for"
 
-
-## SSL Settings
+### SSL CONFIGURATION
+# ---------------------------------------
 # Enable SSL globally (for all virtual hosts)
 nginx__ssl: false
 
@@ -319,7 +325,8 @@ nginx__ssl_ecdh_curve: "{{
   }}"
 
 
-## Gzip Settings
+### GZIP CONFIGURATION
+# ---------------------------------------
 # Enable Gzip globally
 nginx__gzip: true
 
@@ -381,6 +388,9 @@ nginx__virtual_hosts: '{{
       else {}
     )
   }}'
+
+
+## HUGE MAPS
 
 # Default list of secure ciphers
 nginx__ssl_ciphers_default:
