@@ -1,7 +1,5 @@
 {%- import '_macros.j2' as macros with context -%}
-#
-# {{ ansible_managed }}
-#
+{{ ansible_managed|comment(decoration='# ') }}
 user {{ nginx__service_user }} {{ nginx__service_group }};
 pid {{ nginx__service_pidfile }};
 
@@ -31,7 +29,7 @@ http {
     server_tokens {{ macros.stringOrBool(nginx__server_tokens) }};
 
 {% if macros.version_compare_per_branch('1.11.8', '>')|bool %}
-    absolute_redirect {{ nginx__absolute_redirect }};
+    absolute_redirect {{ macros.bool(nginx__absolute_redirect) }};
 {% endif %}
     server_name_in_redirect {{ macros.bool(nginx__server_name_in_redirect) }};
     port_in_redirect {{ macros.bool(nginx__port_in_redirect) }};
@@ -66,7 +64,9 @@ http {
     ##
     # Logs Settings
     ##
-{% for name, format in nginx__log_format|dictsort %}
+    {{ macros.directive({'access_log':{'path': 'access.log'}}) }}
+    {{ macros.directive({'error_log':{'path': 'error.log'}}) }}
+{% for name, format in nginx__log_formats|dictsort %}
 {%   if format is mapping %}
     log_format {{ name }}{% if macros.version_compare_per_branch('1.11.8', '>')|bool %} escape={{ format.escape|d('default') }}{% endif %} '{{ format.format }}';
 {%   else %}

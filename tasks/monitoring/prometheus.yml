@@ -1,0 +1,20 @@
+---
+
+- name: Including prometheus_exporter role for exporter installation
+  import_role:
+    name: turgon37.prometheus_exporter
+  vars:
+    prometheus_exporter__name: nginx_exporter
+    prometheus_exporter__download_url: "\
+      https://github.com/nginxinc/nginx-prometheus-exporter/releases/download/\
+      v{{ prometheus_exporter__version }}/\
+      nginx-prometheus-exporter-{{ prometheus_exporter__version }}\
+      -linux-{{ prometheus_exporter__go_arch_map[ansible_architecture]|d(ansible_architecture) }}.tar.gz"
+    prometheus_exporter__temporary_file_extension: .tar.gz
+    prometheus_exporter__checksum_url: "\
+      https://github.com/nginxinc/nginx-prometheus-exporter/releases/download/\
+      v{{ prometheus_exporter__version }}/sha256sums.txt"
+    prometheus_exporter__service_cmdline: >-
+      -nginx.scrape-uri http://127.0.0.1:{{ nginx__monitoring_port }}{{ nginx__monitoring_url }}
+      {{ nginx__monitoring_nginx_exporter_extra_cmdline }}
+  tags: ['nginx', 'nginx-monitoring']

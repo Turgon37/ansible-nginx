@@ -81,12 +81,24 @@ server {
 {% if vhost.ssl_certificate_key is defined %}
     ssl_certificate_key {{ vhost.ssl_certificate_key }};
 {% endif %}
+{% if vhost.ssl_client_certificate is defined %}
+    ssl_client_certificate {{ vhost.ssl_client_certificate }};
+{% endif %}
+{% if vhost.ssl_trusted_certificate is defined and macros.version_compare_per_branch('1.3.7', '>')|bool %}
+    ssl_trusted_certificate {{ vhost.ssl_trusted_certificate }};
+{% endif %}
+{% if vhost.ssl_verify_client is defined %}
+    ssl_verify_client {{ macros.stringOrBool(vhost.ssl_verify_client) }};
+{% endif %}
+{% if vhost.ssl_verify_depth is defined %}
+    ssl_verify_depth {{ vhost.ssl_verify_depth }};
+{% endif %}
 
 {% for dir in vhost.directives|d([]) %}
-{{   macros.directive(dir)|indent(4, True) }}
+{{   macros.directive(dir)|indent(4, true) }}
 {% endfor %}
 
 {% for sect in vhost.sections|d([]) %}
-{{   macros.section(sect)|indent(4, True) }}
+{{   macros.section(sect)|indent(4, true) }}
 {% endfor %}
 }

@@ -1,6 +1,8 @@
 ---
-- name: Run role
+- name: Converge
   hosts: all
   any_errors_fatal: true
-  roles:
-    - role: ansible-nginx
+  tasks:
+    - name: "Include turgon37.nginx"
+      include_role:
+        name: ansible-nginx

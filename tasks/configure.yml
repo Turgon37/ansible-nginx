@@ -3,6 +3,7 @@
 - name: Get installed version of Nginx
   command: /usr/bin/env nginx -v
   when: ansible_local.nginx is not defined
+    or ansible_local.nginx.version_full is not defined
   changed_when: false
   check_mode: false
   register: _nginx__version_raw
@@ -90,6 +91,7 @@
   register: _nginx__dhparams_stat
 
 - name: Check size of current DH parameters
+  # noqa 306
   shell: >
     openssl dhparam
     -in {{ nginx__ssl_dhparam }}
@@ -129,6 +131,7 @@
     group: '{{ nginx__service_group }}'
     mode: 0640
   when: _nginx__dhparams_generate is not skipped
+  ignore_errors: '{{ ansible_check_mode }}'
 
 # ssl session key file
 
@@ -164,6 +167,7 @@
     group: '{{ nginx__service_group }}'
     mode: 0640
   when: _nginx__session_ticket_key_generate is not skipped
+  ignore_errors: '{{ ansible_check_mode }}'
 
 - name: Include virtuals hosts subtasks
   import_tasks: configure-sites.yml

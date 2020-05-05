@@ -9,6 +9,7 @@ nginx__facts: true
 
 
 ### INSTALL CONFIGURATION
+# ---------------------------------------
 # The nginx version to install (as the ones available in repositories)
 nginx__version: latest
 
@@ -82,7 +83,7 @@ nginx__systemd_override_options_directory:
   '/etc/systemd/system/{{ nginx__service_name }}.service.d'
 
 # Location of the nginx pidfile
-nginx__service_pidfile: /var/run/nginx.pid
+nginx__service_pidfile: /run/nginx.pid
 
 # Main configuration directory
 nginx__config_directory: /etc/nginx
@@ -96,9 +97,8 @@ nginx__configuration_validator: /usr/bin/env nginx -t -c %s
 
 ### MONITORING CONFIGURATION
 # ---------------------------------------
-# If true,
-# load status module and create localhost available vhost to serve mod status
-nginx__enable_monitoring_vhost: '{{ nginx__monitoring is defined }}'
+# If true, create localhost available vhost to serve mod status
+nginx__monitoring_virtual_hosts_enabled: '{{ nginx__monitoring is defined }}'
 
 # Url endpoint on which to serve server status
 nginx__monitoring_url: /nginx-status
@@ -129,6 +129,13 @@ nginx__monitoring_virtual_hosts:
               - '::1'
           - stub_status:
 
+## Prometheus monitoring
+# Which exporter version do you want
+nginx_exporter__version: 0.6.0
+
+# Extra exporter command line options
+nginx__monitoring_nginx_exporter_extra_cmdline: ''
+
 
 ### GENERAL CONFIGURATION
 # ---------------------------------------
@@ -137,21 +144,18 @@ nginx__monitoring_virtual_hosts:
 nginx__ssl_directory: '{{ nginx__config_directory }}/ssl'
 
 # This directory contains symbolic links of enabled sites
-nginx__available_sites_include_directory:
-  '{{ nginx__config_directory }}/sites-available'
+nginx__available_sites_include_directory: '{{ nginx__config_directory }}/sites-available'
 # This directory contains configuration of available sites
-nginx__enabled_sites_include_directory:
-  '{{ nginx__config_directory }}/sites-enabled'
-
-# Directory which contains sites logs
-nginx__logs_directory: /var/log/nginx
+nginx__enabled_sites_include_directory: '{{ nginx__config_directory }}/sites-enabled'
 
 # This file contains mime types mapping
 nginx__mime_types_file: '{{ nginx__config_directory }}/mime.types'
 
 # Mapping of mime types and file extensions
-nginx__mime_types_map: '{{ nginx__mime_types_map_default
-  |union(nginx__mime_types_map_additionnals) }}'
+nginx__mime_types_map: '{{
+    nginx__mime_types_map_default
+    |union(nginx__mime_types_map_additionnals)
+  }}'
 
 # Additionnal mime type mappings
 nginx__mime_types_map_additionnals: []
@@ -200,7 +204,22 @@ nginx__server_name_in_redirect: false
 nginx__port_in_redirect: true
 
 
-## Network Settings
+### LOGS CONFIGURATION
+# ---------------------------------------
+# Directory which contains sites logs
+nginx__logs_directory: /var/log/nginx
+
+# Specifies log format
+nginx__log_formats:
+  main:
+    format: >-
+      $remote_addr - $remote_user [$time_local] "$request"
+      $status $body_bytes_sent "$http_referer"
+      "$http_user_agent" "$http_x_forwarded_for"
+
+
+### NETWORK CONFIGURATION
+# ---------------------------------------
 # Configures name servers used to resolve names of upstream servers
 # into addresses
 nginx__resolver: []
@@ -237,16 +256,9 @@ nginx__keepalive_timeout: 75s
 # This set a value in the “Keep-Alive: timeout=time” response header field
 nginx__keepalive_timeout_header: '{{ nginx__keepalive_timeout }}'
 
-# Specifies log format
-nginx__log_format:
-  main:
-    format: >-
-      $remote_addr - $remote_user [$time_local] "$request"
-      $status $body_bytes_sent "$http_referer"
-      "$http_user_agent" "$http_x_forwarded_for"
 
-
-## SSL Settings
+### SSL CONFIGURATION
+# ---------------------------------------
 # Enable SSL globally (for all virtual hosts)
 nginx__ssl: false
 
@@ -276,9 +288,10 @@ nginx__ssl_session_ticket_key: '{{ nginx__ssl_directory }}/tickets.key'
 # installed nginx version
 # See url below to get more information on this option behaviour
 # http://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_session_ticket_key
-nginx__ssl_session_ticket_key_length:
-  "{{ (_nginx__version is version_compare('1.11.8', '>'))
-  |ternary(80, 48) }}"
+nginx__ssl_session_ticket_key_length: "{{
+    (_nginx__version is version('1.11.8', '>'))
+    |ternary(80, 48)
+  }}"
 
 # Enables or disables session resumption through TLS session tickets
 nginx__ssl_session_tickets: true
@@ -303,11 +316,14 @@ nginx__ssl_dhparam: '{{ nginx__ssl_directory }}/dhparams.pem'
 nginx__ssl_dhparam_length: 2048
 
 # Specifies a curve for ECDHE ciphers
-nginx__ssl_ecdh_curve: "{{ (_nginx__version is version_compare('1.11.0', '>'))
-  |ternary('auto', 'prime256v1') }}"
+nginx__ssl_ecdh_curve: "{{
+    (_nginx__version is version('1.11.0', '>'))
+    |ternary('auto', 'prime256v1')
+  }}"
 
 
-## Gzip Settings
+### GZIP CONFIGURATION
+# ---------------------------------------
 # Enable Gzip globally
 nginx__gzip: true
 
@@ -346,27 +362,32 @@ nginx__gzip_proxied: 'off'
 ## Nginx vhost
 # If true, all virtual hosts that are not in apache2__virtual_hosts
 # will be removed
-nginx__purge_virtual_hosts: true
+nginx__virtual_hosts_purge: true
 
 # This variable is intended to be used in Ansible’s global inventory.
-nginx__global_virtual_hosts: {}
+nginx__virtual_hosts_global: {}
 
 # This variable is intended to be used in a host inventory group of Ansible
 # (only one host group is supported).
-nginx__group_virtual_hosts: {}
+nginx__virtual_hosts_group: {}
 
 # This variable is intended to be used in the inventory of hosts.
-nginx__host_virtual_hosts: {}
+nginx__virtual_hosts_host: {}
 
 # Combned vhosts dicts
-nginx__virtual_hosts: '{{ nginx__global_virtual_hosts
-    |combine(nginx__group_virtual_hosts)
-    |combine(nginx__host_virtual_hosts)
+nginx__virtual_hosts: '{{
+    nginx__virtual_hosts_global
+    |combine(nginx__virtual_hosts_group)
+    |combine(nginx__virtual_hosts_host)
     |combine(
-      nginx__monitoring_virtual_hosts if nginx__enable_monitoring_vhost
+      nginx__monitoring_virtual_hosts
+      if nginx__monitoring_virtual_hosts_enabled
       else {}
     )
   }}'
+
+
+## HUGE MAPS
 
 # Default list of secure ciphers
 nginx__ssl_ciphers_default:
