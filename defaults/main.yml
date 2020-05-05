@@ -292,7 +292,7 @@ nginx__ssl_session_ticket_key: '{{ nginx__ssl_directory }}/tickets.key'
 # See url below to get more information on this option behaviour
 # http://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_session_ticket_key
 nginx__ssl_session_ticket_key_length: "{{
-    (_nginx__version is version_compare('1.11.8', '>'))
+    (_nginx__version is version('1.11.8', '>'))
     |ternary(80, 48)
   }}"
 
@@ -320,7 +320,7 @@ nginx__ssl_dhparam_length: 2048
 
 # Specifies a curve for ECDHE ciphers
 nginx__ssl_ecdh_curve: "{{
-    (_nginx__version is version_compare('1.11.0', '>'))
+    (_nginx__version is version('1.11.0', '>'))
     |ternary('auto', 'prime256v1')
   }}"
 

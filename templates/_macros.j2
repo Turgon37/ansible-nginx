@@ -48,9 +48,9 @@
 {% set operator = oper or mainline_version %}
 {% set _mainline_version = (oper is not none)|ternary(mainline_version, stable_version) %}
 {%- if _nginx__branch == 'stable' -%}
-{{   (_nginx__version|d('0.0') is version_compare(stable_version, operator))|bool }}
+{{   (_nginx__version|d('0.0') is version(stable_version, operator))|bool }}
 {%- elif _nginx__branch == 'mainline' -%}
-{{   (_nginx__version|d('0.0') is version_compare(_mainline_version, operator))|bool }}
+{{   (_nginx__version|d('0.0') is version(_mainline_version, operator))|bool }}
 {%- endif -%}
 {%- endmacro -%}
 
