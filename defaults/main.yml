@@ -148,9 +148,6 @@ nginx__available_sites_include_directory: '{{ nginx__config_directory }}/sites-a
 # This directory contains configuration of available sites
 nginx__enabled_sites_include_directory: '{{ nginx__config_directory }}/sites-enabled'
 
-# Directory which contains sites logs
-nginx__logs_directory: /var/log/nginx
-
 # This file contains mime types mapping
 nginx__mime_types_file: '{{ nginx__config_directory }}/mime.types'
 
