@@ -2,7 +2,8 @@
 
 - name: Get installed version of Nginx
   command: /usr/bin/env nginx -v
-  when: ansible_local.nginx.version_full is not defined
+  when: ansible_local.nginx is not defined
+    or ansible_local.nginx.version_full is not defined
   changed_when: false
   check_mode: false
   register: _nginx__version_raw
